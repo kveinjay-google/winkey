@@ -187,11 +187,11 @@ final class KeyboardMapper {
             guard let self else { return }
 
             let alert = NSAlert()
-            alert.messageText = "是否将所选项目移到废纸篓？"
-            alert.informativeText = "此操作等同于在 Finder 中按 Command + Delete，可从废纸篓恢复。"
+            alert.messageText = LocalizedText.deleteAlertTitle(self.settings.language)
+            alert.informativeText = LocalizedText.deleteAlertMessage(self.settings.language)
             alert.alertStyle = .warning
-            alert.addButton(withTitle: "移到废纸篓")
-            alert.addButton(withTitle: "取消")
+            alert.addButton(withTitle: LocalizedText.moveToTrash(self.settings.language))
+            alert.addButton(withTitle: LocalizedText.cancel(self.settings.language))
 
             if alert.runModal() == .alertFirstButtonReturn {
                 finder?.activate(options: [.activateIgnoringOtherApps])

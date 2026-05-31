@@ -5,7 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var permissionTimer: Timer?
     private var lastTrustedState = AccessibilityPermission.isTrusted
     private lazy var keyboardMapper = KeyboardMapper(settings: settings)
-    private lazy var permissionWindow = PermissionWindowController()
+    private lazy var permissionWindow = PermissionWindowController(settings: settings)
     private lazy var statusMenu = StatusMenuController(
         settings: settings,
         keyboardMapper: keyboardMapper,

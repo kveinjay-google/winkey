@@ -20,6 +20,7 @@ final class StatusMenuController: NSObject {
     private let altTabItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
     private let launchAtLoginItem = NSMenuItem()
+    private let languageItem = NSMenuItem()
     private let versionItem = NSMenuItem()
 
     init(
@@ -51,16 +52,17 @@ final class StatusMenuController: NSObject {
         configure(item: altTabItem, action: #selector(toggleAltTab))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: launchAtLoginItem, action: #selector(toggleLaunchAtLogin))
+        configure(item: languageItem, action: #selector(toggleLanguage))
 
         let permissionItem = NSMenuItem(
-            title: "打开辅助功能权限设置...",
+            title: "",
             action: #selector(openPermissionSettings),
             keyEquivalent: ""
         )
         permissionItem.target = self
 
         let quitItem = NSMenuItem(
-            title: "退出 WinKey",
+            title: "",
             action: #selector(quit),
             keyEquivalent: "q"
         )
@@ -82,6 +84,7 @@ final class StatusMenuController: NSObject {
         menu.addItem(reverseScrollItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
+        menu.addItem(languageItem)
         menu.addItem(permissionItem)
         menu.addItem(.separator())
         menu.addItem(versionItem)
@@ -98,53 +101,67 @@ final class StatusMenuController: NSObject {
     }
 
     func refresh() {
+        let language = settings.language
+        statusItem.button?.toolTip = LocalizedText.appToolTip(language)
+
         if !AccessibilityPermission.isTrusted {
-            statusMenuItem.title = "状态：未授权"
+            statusMenuItem.title = LocalizedText.statusUnauthorized(language)
         } else if settings.enabled {
-            statusMenuItem.title = "状态：已启用"
+            statusMenuItem.title = LocalizedText.statusEnabled(language)
         } else {
-            statusMenuItem.title = "状态：已暂停"
+            statusMenuItem.title = LocalizedText.statusPaused(language)
         }
 
-        enabledItem.title = "启用 Windows 键盘习惯"
+        enabledItem.title = LocalizedText.enableKeyboardHabits(language)
         enabledItem.state = settings.enabled ? .on : .off
 
-        deleteItem.title = "Delete 删除 Finder 文件前确认"
+        deleteItem.title = LocalizedText.deleteFinderFiles(language)
         deleteItem.state = settings.deleteInFinder ? .on : .off
 
-        printScreenItem.title = "PrtSc 全屏截屏"
+        printScreenItem.title = LocalizedText.printScreen(language)
         printScreenItem.state = settings.printScreen ? .on : .off
 
-        altAScreenshotItem.title = "手动截图并复制"
+        altAScreenshotItem.title = LocalizedText.clipboardScreenshot(language)
         altAScreenshotItem.state = settings.altAClipboardScreenshot ? .on : .off
 
-        screenshotShortcutItem.title = "截图快捷键：\(settings.screenshotShortcutModifier.displayName)"
+        screenshotShortcutItem.title = LocalizedText.screenshotShortcut(language, shortcut: settings.screenshotShortcutModifier.displayName)
 
-        homeEndItem.title = "Home / End 文本导航"
+        homeEndItem.title = LocalizedText.homeEndNavigation(language)
         homeEndItem.state = settings.homeEnd ? .on : .off
 
-        ctrlArrowItem.title = "Ctrl + 方向键文本导航"
+        ctrlArrowItem.title = LocalizedText.ctrlArrowNavigation(language)
         ctrlArrowItem.state = settings.ctrlArrow ? .on : .off
 
-        ctrlASelectAllItem.title = "Ctrl + A 全选"
+        ctrlASelectAllItem.title = LocalizedText.ctrlASelectAll(language)
         ctrlASelectAllItem.state = settings.ctrlASelectAll ? .on : .off
 
-        ctrlCommonShortcutsItem.title = "Ctrl 常用快捷键"
+        ctrlCommonShortcutsItem.title = LocalizedText.ctrlCommonShortcuts(language)
         ctrlCommonShortcutsItem.state = settings.ctrlCommonShortcuts ? .on : .off
 
-        altTabItem.title = "Alt + Tab 切换应用"
+        altTabItem.title = LocalizedText.altTab(language)
         altTabItem.state = settings.altTab ? .on : .off
 
-        reverseScrollItem.title = "反转鼠标滚轮方向"
+        reverseScrollItem.title = LocalizedText.reverseScroll(language)
         reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
 
-        launchAtLoginItem.title = "开机启动"
+        launchAtLoginItem.title = LocalizedText.launchAtLogin(language)
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
 
-        versionItem.title = "版本 \(AppVersion.shortVersion) (\(AppVersion.build))"
+        languageItem.title = LocalizedText.languageMenu(language)
+
+        if let permissionItem = statusItem.menu?.items.first(where: { $0.action == #selector(openPermissionSettings) }) {
+            permissionItem.title = LocalizedText.openAccessibilitySettings(language)
+        }
+
+        if let quitItem = statusItem.menu?.items.first(where: { $0.action == #selector(quit) }) {
+            quitItem.title = LocalizedText.quit(language)
+        }
+
+        versionItem.title = LocalizedText.version(language)
         versionItem.isEnabled = false
 
         statusItem.button?.title = AccessibilityPermission.isTrusted && settings.enabled ? "WinKey" : "WinKey!"
+        permissionWindow.refreshLanguage(language)
     }
 
     private func installCtrlCommonSubmenu() {
@@ -230,6 +247,11 @@ final class StatusMenuController: NSObject {
         refresh()
     }
 
+    @objc private func toggleLanguage() {
+        settings.language = settings.language == .english ? .chinese : .english
+        refresh()
+    }
+
     @objc private func toggleLaunchAtLogin() {
         let shouldEnable = !settings.launchAtLogin
 
@@ -242,7 +264,7 @@ final class StatusMenuController: NSObject {
 
             settings.launchAtLogin = shouldEnable
         } catch {
-            showError(title: "无法更新开机启动", message: error.localizedDescription)
+            showError(title: LocalizedText.launchAtLoginErrorTitle(settings.language), message: error.localizedDescription)
         }
 
         refresh()

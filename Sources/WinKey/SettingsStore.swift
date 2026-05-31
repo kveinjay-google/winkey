@@ -1,5 +1,10 @@
 import Foundation
 
+enum AppLanguage: String {
+    case english
+    case chinese
+}
+
 enum ScreenshotShortcutModifier: String {
     case option
     case command
@@ -16,6 +21,7 @@ enum ScreenshotShortcutModifier: String {
 
 final class SettingsStore {
     enum Key {
+        static let language = "language"
         static let enabled = "enabled"
         static let deleteInFinder = "deleteInFinder"
         static let printScreen = "printScreen"
@@ -35,6 +41,7 @@ final class SettingsStore {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
+            Key.language: AppLanguage.english.rawValue,
             Key.enabled: true,
             Key.deleteInFinder: true,
             Key.printScreen: true,
@@ -48,6 +55,16 @@ final class SettingsStore {
             Key.reverseScrollWheel: false,
             Key.launchAtLogin: false
         ])
+    }
+
+    var language: AppLanguage {
+        get {
+            let rawValue = defaults.string(forKey: Key.language)
+            return rawValue.flatMap(AppLanguage.init(rawValue:)) ?? .english
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: Key.language)
+        }
     }
 
     var enabled: Bool {

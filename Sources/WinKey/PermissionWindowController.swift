@@ -1,39 +1,57 @@
 import AppKit
 
 final class PermissionWindowController: NSWindowController {
-    convenience init() {
-        let viewController = PermissionViewController()
+    convenience init(settings: SettingsStore) {
+        let viewController = PermissionViewController(settings: settings)
         let window = NSWindow(contentViewController: viewController)
-        window.title = "开启 WinKey"
+        window.title = LocalizedText.permissionWindowTitle(settings.language)
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.setContentSize(NSSize(width: 420, height: 190))
         window.center()
         self.init(window: window)
     }
+
+    func refreshLanguage(_ language: AppLanguage) {
+        window?.title = LocalizedText.permissionWindowTitle(language)
+        (contentViewController as? PermissionViewController)?.refreshLanguage()
+    }
 }
 
 final class PermissionViewController: NSViewController {
+    private let settings: SettingsStore
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let bodyLabel = NSTextField(labelWithString: "")
+    private let openButton = NSButton()
+
+    init(settings: SettingsStore) {
+        self.settings = settings
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
     override func loadView() {
         let root = NSView()
         root.translatesAutoresizingMaskIntoConstraints = false
 
-        let iconView = NSImageView(image: NSImage(systemSymbolName: "keyboard", accessibilityDescription: "键盘") ?? NSImage())
+        let iconView = NSImageView(image: NSImage(systemSymbolName: "keyboard", accessibilityDescription: LocalizedText.permissionIconDescription(settings.language)) ?? NSImage())
         iconView.symbolConfiguration = .init(pointSize: 28, weight: .medium)
         iconView.contentTintColor = .controlAccentColor
         iconView.translatesAutoresizingMaskIntoConstraints = false
 
-        let titleLabel = NSTextField(labelWithString: "允许 WinKey 接管键盘")
         titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         titleLabel.lineBreakMode = .byWordWrapping
         titleLabel.maximumNumberOfLines = 0
 
-        let bodyLabel = NSTextField(labelWithString: "在系统设置中开启“辅助功能”，即可使用 Delete、PrtSc、Home/End 等 Windows 键盘习惯。")
         bodyLabel.font = .systemFont(ofSize: 13)
         bodyLabel.textColor = .secondaryLabelColor
         bodyLabel.lineBreakMode = .byWordWrapping
         bodyLabel.maximumNumberOfLines = 2
 
-        let openButton = NSButton(title: "打开设置", target: self, action: #selector(openSettings))
+        openButton.target = self
+        openButton.action = #selector(openSettings)
         openButton.bezelStyle = .rounded
         openButton.keyEquivalent = "\r"
 
@@ -68,7 +86,14 @@ final class PermissionViewController: NSViewController {
             openButton.heightAnchor.constraint(equalToConstant: 30)
         ])
 
+        refreshLanguage()
         view = root
+    }
+
+    func refreshLanguage() {
+        titleLabel.stringValue = LocalizedText.permissionTitle(settings.language)
+        bodyLabel.stringValue = LocalizedText.permissionBody(settings.language)
+        openButton.title = LocalizedText.openSettings(settings.language)
     }
 
     @objc private func openSettings() {

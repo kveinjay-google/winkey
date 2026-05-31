@@ -18,7 +18,7 @@ final class KeyboardMapper {
             return
         }
 
-        let mask = (1 << CGEventType.keyDown.rawValue)
+        let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.scrollWheel.rawValue)
         let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
         guard let tap = CGEvent.tapCreate(
@@ -73,11 +73,35 @@ final class KeyboardMapper {
             return Unmanaged.passUnretained(event)
         }
 
+        if type == .scrollWheel {
+            return mapper.handleScrollWheel(event)
+        }
+
         guard type == .keyDown else {
             return Unmanaged.passUnretained(event)
         }
 
         return mapper.handleKeyDown(event)
+    }
+
+    private func handleScrollWheel(_ event: CGEvent) -> Unmanaged<CGEvent>? {
+        guard settings.reverseScrollWheel else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        reverseScrollField(.scrollWheelEventDeltaAxis1, in: event)
+        reverseScrollField(.scrollWheelEventDeltaAxis2, in: event)
+        reverseScrollField(.scrollWheelEventFixedPtDeltaAxis1, in: event)
+        reverseScrollField(.scrollWheelEventFixedPtDeltaAxis2, in: event)
+        reverseScrollField(.scrollWheelEventPointDeltaAxis1, in: event)
+        reverseScrollField(.scrollWheelEventPointDeltaAxis2, in: event)
+
+        return Unmanaged.passUnretained(event)
+    }
+
+    private func reverseScrollField(_ field: CGEventField, in event: CGEvent) {
+        let value = event.getIntegerValueField(field)
+        event.setIntegerValueField(field, value: -value)
     }
 
     private func handleKeyDown(_ event: CGEvent) -> Unmanaged<CGEvent>? {

@@ -18,6 +18,7 @@ final class StatusMenuController: NSObject {
     private let altAScreenshotItem = NSMenuItem()
     private let screenshotShortcutItem = NSMenuItem()
     private let altTabItem = NSMenuItem()
+    private let reverseScrollItem = NSMenuItem()
     private let launchAtLoginItem = NSMenuItem()
     private let versionItem = NSMenuItem()
 
@@ -48,6 +49,7 @@ final class StatusMenuController: NSObject {
         configure(item: altAScreenshotItem, action: #selector(toggleAltAScreenshot))
         configure(item: screenshotShortcutItem, action: #selector(toggleScreenshotShortcut))
         configure(item: altTabItem, action: #selector(toggleAltTab))
+        configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: launchAtLoginItem, action: #selector(toggleLaunchAtLogin))
 
         let permissionItem = NSMenuItem(
@@ -77,6 +79,7 @@ final class StatusMenuController: NSObject {
         menu.addItem(ctrlASelectAllItem)
         menu.addItem(ctrlCommonShortcutsItem)
         menu.addItem(altTabItem)
+        menu.addItem(reverseScrollItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(permissionItem)
@@ -131,6 +134,9 @@ final class StatusMenuController: NSObject {
 
         altTabItem.title = "Alt + Tab 切换应用"
         altTabItem.state = settings.altTab ? .on : .off
+
+        reverseScrollItem.title = "反转鼠标滚轮方向"
+        reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
 
         launchAtLoginItem.title = "开机启动"
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
@@ -216,6 +222,11 @@ final class StatusMenuController: NSObject {
 
     @objc private func toggleAltTab() {
         settings.altTab.toggle()
+        refresh()
+    }
+
+    @objc private func toggleReverseScroll() {
+        settings.reverseScrollWheel.toggle()
         refresh()
     }
 

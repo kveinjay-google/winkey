@@ -3,8 +3,10 @@ import ApplicationServices
 
 final class KeyboardMapper {
     private let settings: SettingsStore
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
+    private var keyboardEventTap: CFMachPort?
+    private var keyboardRunLoopSource: CFRunLoopSource?
+    private var scrollEventTap: CFMachPort?
+    private var scrollRunLoopSource: CFRunLoopSource?
     private let syntheticEventMarker: Int64 = 0x57494E4B4559
 
     init(settings: SettingsStore) {
@@ -18,41 +20,68 @@ final class KeyboardMapper {
             return
         }
 
-        let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.scrollWheel.rawValue)
+        let keyboardMask = 1 << CGEventType.keyDown.rawValue
+        let scrollMask = 1 << CGEventType.scrollWheel.rawValue
         let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
-        guard let tap = CGEvent.tapCreate(
+        if let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
-            eventsOfInterest: CGEventMask(mask),
+            eventsOfInterest: CGEventMask(keyboardMask),
             callback: KeyboardMapper.eventTapCallback,
             userInfo: userInfo
-        ) else {
-            return
+        ) {
+            keyboardEventTap = tap
+            keyboardRunLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+
+            if let keyboardRunLoopSource {
+                CFRunLoopAddSource(CFRunLoopGetMain(), keyboardRunLoopSource, .commonModes)
+            }
+
+            CGEvent.tapEnable(tap: tap, enable: true)
         }
 
-        eventTap = tap
-        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        if let tap = CGEvent.tapCreate(
+            tap: .cghidEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: CGEventMask(scrollMask),
+            callback: KeyboardMapper.eventTapCallback,
+            userInfo: userInfo
+        ) {
+            scrollEventTap = tap
+            scrollRunLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 
-        if let runLoopSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            if let scrollRunLoopSource {
+                CFRunLoopAddSource(CFRunLoopGetMain(), scrollRunLoopSource, .commonModes)
+            }
+
+            CGEvent.tapEnable(tap: tap, enable: true)
         }
-
-        CGEvent.tapEnable(tap: tap, enable: true)
     }
 
     func stop() {
-        if let tap = eventTap {
+        if let tap = keyboardEventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
 
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        if let tap = scrollEventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
         }
 
-        runLoopSource = nil
-        eventTap = nil
+        if let keyboardRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), keyboardRunLoopSource, .commonModes)
+        }
+
+        if let scrollRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), scrollRunLoopSource, .commonModes)
+        }
+
+        keyboardRunLoopSource = nil
+        keyboardEventTap = nil
+        scrollRunLoopSource = nil
+        scrollEventTap = nil
     }
 
     func restart() {
@@ -67,7 +96,10 @@ final class KeyboardMapper {
         let mapper = Unmanaged<KeyboardMapper>.fromOpaque(userInfo).takeUnretainedValue()
 
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let tap = mapper.eventTap {
+            if let tap = mapper.keyboardEventTap {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
+            if let tap = mapper.scrollEventTap {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
             return Unmanaged.passUnretained(event)

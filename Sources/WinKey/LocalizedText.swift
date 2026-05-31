@@ -99,8 +99,8 @@ enum LocalizedText {
 
     static func reverseScroll(_ language: AppLanguage) -> String {
         switch language {
-        case .english: return "Reverse mouse wheel direction"
-        case .chinese: return "反转鼠标滚轮方向"
+        case .english: return "Reverse scroll direction"
+        case .chinese: return "反转滚动方向"
         }
     }
 

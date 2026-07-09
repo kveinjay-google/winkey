@@ -20,6 +20,10 @@ typedef NS_ENUM(NSUInteger, WinKeyScrollPhase) {
 static uint64_t const WinKeyMillisecond = 1000000;
 static NSInteger const WinKeyDiscreteScrollStepSize = 3;
 static int64_t const WinKeySyntheticScrollMarker = 0x57494E4B5343524C;
+static NSString *const WinKeyDefaultsScrollActive = @"scrollDebugActive";
+static NSString *const WinKeyDefaultsScrollEvents = @"scrollDebugEvents";
+static NSString *const WinKeyDefaultsScrollSyntheticEvents = @"scrollDebugSyntheticEvents";
+static NSString *const WinKeyDefaultsScrollSummary = @"scrollDebugSummary";
 
 @interface WinKeyScrollReverser ()
 
@@ -114,6 +118,16 @@ static BOOL WinKeyPostSyntheticScrollEvent(int32_t vertical, int32_t horizontal)
     return YES;
 }
 
+static void WinKeyWriteScrollDiagnostics(WinKeyScrollReverser *tap)
+{
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setBool:tap.active forKey:WinKeyDefaultsScrollActive];
+    [defaults setInteger:(NSInteger)tap.scrollEventCount forKey:WinKeyDefaultsScrollEvents];
+    [defaults setInteger:(NSInteger)tap.synthesizedScrollEventCount forKey:WinKeyDefaultsScrollSyntheticEvents];
+    [defaults setObject:tap.lastDebugSummary ?: @"" forKey:WinKeyDefaultsScrollSummary];
+    [defaults synchronize];
+}
+
 static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eventRef, void *userInfo)
 {
     @autoreleasepool {
@@ -177,6 +191,7 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
                                     axis2,
                                     pointAxis2,
                                     fixedAxis2];
+            WinKeyWriteScrollDiagnostics(tap);
 
             if (!tap.didLogFirstScrollReversal) {
                 tap.didLogFirstScrollReversal = YES;
@@ -207,6 +222,7 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
                                             (unsigned long)tap.synthesizedScrollEventCount,
                                             vertical,
                                             horizontal];
+                    WinKeyWriteScrollDiagnostics(tap);
                     if (ioHIDEvent) {
                         WinKeyIOHIDEventRelease(ioHIDEvent);
                     }
@@ -304,8 +320,11 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
         CFRunLoopAddSource(CFRunLoopGetMain(), self.activeTapSource, kCFRunLoopCommonModes);
         CGEventTapEnable(self.activeTapPort, YES);
         self.lastDebugSummary = self.passiveTapPort ? @"Scroll tap ready; gesture tap ready" : @"Scroll tap ready; gesture tap unavailable";
+        WinKeyWriteScrollDiagnostics(self);
         NSLog(@"WinKey ObjC scroll tap started; passive gesture tap %@", self.passiveTapPort ? @"started" : @"unavailable");
     } else {
+        self.lastDebugSummary = @"Scroll tap unavailable";
+        WinKeyWriteScrollDiagnostics(self);
         NSLog(@"WinKey ObjC failed to create scroll taps: passive=%p active=%p", self.passiveTapPort, self.activeTapPort);
         [self stop];
     }
@@ -336,6 +355,9 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
         CFRelease(self.passiveTapPort);
         self.passiveTapPort = nil;
     }
+
+    self.lastDebugSummary = @"Scroll tap stopped";
+    WinKeyWriteScrollDiagnostics(self);
 }
 
 - (void)restart

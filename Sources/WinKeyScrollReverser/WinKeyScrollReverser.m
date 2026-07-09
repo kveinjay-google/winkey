@@ -258,7 +258,7 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
 
 - (BOOL)isActive
 {
-    return self.activeTapSource && self.passiveTapSource && self.activeTapPort && self.passiveTapPort;
+    return self.activeTapSource && self.activeTapPort;
 }
 
 - (void)start
@@ -293,14 +293,18 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
         (__bridge void *)self
     );
 
-    if (self.passiveTapPort && self.activeTapPort) {
-        self.passiveTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, self.passiveTapPort, 0);
-        CFRunLoopAddSource(CFRunLoopGetMain(), self.passiveTapSource, kCFRunLoopCommonModes);
+    if (self.activeTapPort) {
+        if (self.passiveTapPort) {
+            self.passiveTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, self.passiveTapPort, 0);
+            CFRunLoopAddSource(CFRunLoopGetMain(), self.passiveTapSource, kCFRunLoopCommonModes);
+            CGEventTapEnable(self.passiveTapPort, YES);
+        }
+
         self.activeTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, self.activeTapPort, 0);
         CFRunLoopAddSource(CFRunLoopGetMain(), self.activeTapSource, kCFRunLoopCommonModes);
-        CGEventTapEnable(self.passiveTapPort, YES);
         CGEventTapEnable(self.activeTapPort, YES);
-        NSLog(@"WinKey ObjC scroll taps started");
+        self.lastDebugSummary = self.passiveTapPort ? @"Scroll tap ready; gesture tap ready" : @"Scroll tap ready; gesture tap unavailable";
+        NSLog(@"WinKey ObjC scroll tap started; passive gesture tap %@", self.passiveTapPort ? @"started" : @"unavailable");
     } else {
         NSLog(@"WinKey ObjC failed to create scroll taps: passive=%p active=%p", self.passiveTapPort, self.activeTapPort);
         [self stop];

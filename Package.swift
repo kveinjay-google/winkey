@@ -11,8 +11,13 @@ let package = Package(
         .executable(name: "WinKey", targets: ["WinKey"])
     ],
     targets: [
+        .target(
+            name: "WinKeyHIDShim",
+            path: "Sources/WinKeyHIDShim"
+        ),
         .executableTarget(
             name: "WinKey",
+            dependencies: ["WinKeyHIDShim"],
             path: "Sources/WinKey"
         )
     ]

@@ -55,6 +55,8 @@ WinKey 不上传键盘输入，不连接网络，也不保存你的按键内容�
 
 当前仓库生成的是本地开发版 `.app`，使用 ad-hoc 签名。公开分发时建议使用 Apple Developer ID 签名并进行 notarization。
 
+滚动方向反转使用 CoreGraphics 事件 tap，并参考了 [Scroll Reverser](https://github.com/pilotmoon/Scroll-Reverser) 的做法，同时修改 CGEvent 滚动 delta 与底层 IOHID 滚动字段。
+
 ## 许可证
 
 本项目使用 MIT License，详见 [LICENSE](LICENSE)。

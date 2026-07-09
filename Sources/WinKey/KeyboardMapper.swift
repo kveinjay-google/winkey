@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import WinKeyHIDShim
 
 final class KeyboardMapper {
     private let settings: SettingsStore
@@ -43,8 +44,8 @@ final class KeyboardMapper {
         }
 
         if let tap = CGEvent.tapCreate(
-            tap: .cghidEventTap,
-            place: .headInsertEventTap,
+            tap: .cgSessionEventTap,
+            place: .tailAppendEventTap,
             options: .defaultTap,
             eventsOfInterest: CGEventMask(scrollMask),
             callback: KeyboardMapper.eventTapCallback,
@@ -121,19 +122,44 @@ final class KeyboardMapper {
             return Unmanaged.passUnretained(event)
         }
 
-        reverseScrollField(.scrollWheelEventDeltaAxis1, in: event)
-        reverseScrollField(.scrollWheelEventDeltaAxis2, in: event)
-        reverseScrollField(.scrollWheelEventFixedPtDeltaAxis1, in: event)
-        reverseScrollField(.scrollWheelEventFixedPtDeltaAxis2, in: event)
-        reverseScrollField(.scrollWheelEventPointDeltaAxis1, in: event)
-        reverseScrollField(.scrollWheelEventPointDeltaAxis2, in: event)
+        reverseVerticalScroll(in: event)
+        reverseHorizontalScroll(in: event)
 
         return Unmanaged.passUnretained(event)
     }
 
-    private func reverseScrollField(_ field: CGEventField, in event: CGEvent) {
-        let value = event.getIntegerValueField(field)
-        event.setIntegerValueField(field, value: -value)
+    private func reverseVerticalScroll(in event: CGEvent) {
+        let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+        let pointDelta = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+        let fixedPointDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: -delta)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: -fixedPointDelta)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: -pointDelta)
+
+        reverseIOHIDScrollField(WinKeyIOHIDEventFieldScrollY(), in: event)
+    }
+
+    private func reverseHorizontalScroll(in event: CGEvent) {
+        let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
+        let pointDelta = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
+        let fixedPointDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: -delta)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: -fixedPointDelta)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: -pointDelta)
+
+        reverseIOHIDScrollField(WinKeyIOHIDEventFieldScrollX(), in: event)
+    }
+
+    private func reverseIOHIDScrollField(_ field: UInt32, in event: CGEvent) {
+        guard let unmanagedHIDEvent = WinKeyCGEventCopyIOHIDEvent(event) else {
+            return
+        }
+
+        let hidEvent = unmanagedHIDEvent.takeRetainedValue()
+        let value = WinKeyIOHIDEventGetFloatValue(hidEvent, field)
+        WinKeyIOHIDEventSetFloatValue(hidEvent, field, -value)
     }
 
     private func handleKeyDown(_ event: CGEvent) -> Unmanaged<CGEvent>? {

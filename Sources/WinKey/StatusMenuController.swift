@@ -22,7 +22,6 @@ final class StatusMenuController: NSObject {
     private let altTabItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
     private let scrollDiagnosticsItem = NSMenuItem()
-    private let invertSyntheticScrollItem = NSMenuItem()
     private let launchAtLoginItem = NSMenuItem()
     private let languageItem = NSMenuItem()
     private let inputMonitoringItem = NSMenuItem()
@@ -60,7 +59,6 @@ final class StatusMenuController: NSObject {
         configure(item: altTabItem, action: #selector(toggleAltTab))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: scrollDiagnosticsItem, action: nil)
-        configure(item: invertSyntheticScrollItem, action: #selector(toggleInvertSyntheticScrollSign))
         configure(item: launchAtLoginItem, action: #selector(toggleLaunchAtLogin))
         configure(item: languageItem, action: #selector(toggleLanguage))
         configure(item: inputMonitoringItem, action: #selector(openInputMonitoringSettings))
@@ -94,7 +92,6 @@ final class StatusMenuController: NSObject {
         menu.addItem(altTabItem)
         menu.addItem(reverseScrollItem)
         menu.addItem(scrollDiagnosticsItem)
-        menu.addItem(invertSyntheticScrollItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(languageItem)
@@ -163,9 +160,6 @@ final class StatusMenuController: NSObject {
         scrollDiagnosticsItem.title = LocalizedText.scrollDiagnostics(language, summary: scrollReverser.lastDebugSummary)
         scrollDiagnosticsItem.isEnabled = false
         scrollDiagnosticsItem.isHidden = !settings.reverseScrollWheel
-        invertSyntheticScrollItem.title = LocalizedText.invertSyntheticScrollSign(language)
-        invertSyntheticScrollItem.state = settings.invertSyntheticScrollSign ? .on : .off
-        invertSyntheticScrollItem.isHidden = !settings.reverseScrollWheel
 
         launchAtLoginItem.title = LocalizedText.launchAtLogin(language)
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
@@ -274,12 +268,6 @@ final class StatusMenuController: NSObject {
         refresh()
     }
 
-    @objc private func toggleInvertSyntheticScrollSign() {
-        settings.invertSyntheticScrollSign.toggle()
-        updateScrollReverser()
-        refresh()
-    }
-
     @objc private func toggleLanguage() {
         settings.language = settings.language == .english ? .chinese : .english
         refresh()
@@ -334,7 +322,6 @@ final class StatusMenuController: NSObject {
         if AccessibilityPermission.isTrusted {
             scrollReverser.start()
             scrollReverser.isEnabled = settings.enabled && settings.reverseScrollWheel
-            scrollReverser.invertSyntheticScrollSign = settings.invertSyntheticScrollSign
         } else {
             scrollReverser.stop()
         }

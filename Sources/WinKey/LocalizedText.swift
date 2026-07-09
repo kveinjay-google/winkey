@@ -118,13 +118,6 @@ enum LocalizedText {
         }
     }
 
-    static func invertSyntheticScrollSign(_ language: AppLanguage) -> String {
-        switch language {
-        case .english: return "Flip synthetic scroll direction"
-        case .chinese: return "切换合成滚轮方向"
-        }
-    }
-
     static func launchAtLogin(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Launch at login"

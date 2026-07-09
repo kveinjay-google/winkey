@@ -19,11 +19,10 @@ typedef NS_ENUM(NSUInteger, WinKeyScrollPhase) {
 
 static uint64_t const WinKeyMillisecond = 1000000;
 static NSInteger const WinKeyDiscreteScrollStepSize = 3;
-static int64_t const WinKeySyntheticScrollMarker = 0x57494E4B5343524C;
 static NSString *const WinKeyDefaultsScrollActive = @"scrollDebugActive";
 static NSString *const WinKeyDefaultsScrollEvents = @"scrollDebugEvents";
-static NSString *const WinKeyDefaultsScrollSyntheticEvents = @"scrollDebugSyntheticEvents";
 static NSString *const WinKeyDefaultsScrollSummary = @"scrollDebugSummary";
+static NSString *const WinKeyDefaultsLegacySyntheticEvents = @"scrollDebugSyntheticEvents";
 
 @interface WinKeyScrollReverser ()
 
@@ -36,7 +35,6 @@ static NSString *const WinKeyDefaultsScrollSummary = @"scrollDebugSummary";
 @property (nonatomic) WinKeyScrollSource lastSource;
 @property (nonatomic) BOOL didLogFirstScrollReversal;
 @property (nonatomic, readwrite) NSUInteger scrollEventCount;
-@property (nonatomic, readwrite) NSUInteger synthesizedScrollEventCount;
 @property (nonatomic, copy, readwrite) NSString *lastDebugSummary;
 
 - (void)enableTap;
@@ -71,59 +69,12 @@ static WinKeyScrollPhase WinKeyMomentumPhaseForEvent(CGEventRef eventRef)
     }
 }
 
-static int32_t WinKeySyntheticLineValue(int64_t delta, int64_t pointDelta, double fixedDelta, NSInteger multiplier)
-{
-    if (delta != 0) {
-        return (int32_t)(delta * multiplier);
-    }
-
-    if (pointDelta != 0) {
-        return (int32_t)((pointDelta > 0 ? 1 : -1) * multiplier);
-    }
-
-    if (fixedDelta != 0) {
-        return (int32_t)((fixedDelta > 0 ? 1 : -1) * multiplier);
-    }
-
-    return 0;
-}
-
-static BOOL WinKeyPostSyntheticScrollEvent(int32_t vertical, int32_t horizontal)
-{
-    if (vertical == 0 && horizontal == 0) {
-        return NO;
-    }
-
-    CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
-    if (!source) {
-        return NO;
-    }
-
-    CGEventRef event = CGEventCreateScrollWheelEvent(
-        source,
-        kCGScrollEventUnitLine,
-        2,
-        vertical,
-        horizontal
-    );
-    CFRelease(source);
-
-    if (!event) {
-        return NO;
-    }
-
-    CGEventSetIntegerValueField(event, kCGEventSourceUserData, WinKeySyntheticScrollMarker);
-    CGEventPost(kCGHIDEventTap, event);
-    CFRelease(event);
-    return YES;
-}
-
 static void WinKeyWriteScrollDiagnostics(WinKeyScrollReverser *tap)
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setBool:tap.active forKey:WinKeyDefaultsScrollActive];
     [defaults setInteger:(NSInteger)tap.scrollEventCount forKey:WinKeyDefaultsScrollEvents];
-    [defaults setInteger:(NSInteger)tap.synthesizedScrollEventCount forKey:WinKeyDefaultsScrollSyntheticEvents];
+    [defaults removeObjectForKey:WinKeyDefaultsLegacySyntheticEvents];
     [defaults setObject:tap.lastDebugSummary ?: @"" forKey:WinKeyDefaultsScrollSummary];
     [defaults synchronize];
 }
@@ -145,10 +96,6 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
         }
 
         if (type == (CGEventType)NSEventTypeScrollWheel) {
-            if (CGEventGetIntegerValueField(eventRef, kCGEventSourceUserData) == WinKeySyntheticScrollMarker) {
-                return eventRef;
-            }
-
             if (!tap.enabled) {
                 return eventRef;
             }
@@ -161,6 +108,13 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
             double fixedAxis1 = CGEventGetDoubleValueField(eventRef, kCGScrollWheelEventFixedPtDeltaAxis1);
             double fixedAxis2 = CGEventGetDoubleValueField(eventRef, kCGScrollWheelEventFixedPtDeltaAxis2);
             CFTypeRef ioHIDEvent = WinKeyCGEventCopyIOHIDEvent(eventRef);
+            double ioHIDAxis1 = 0;
+            double ioHIDAxis2 = 0;
+
+            if (ioHIDEvent) {
+                ioHIDAxis1 = WinKeyIOHIDEventGetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollY());
+                ioHIDAxis2 = WinKeyIOHIDEventGetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollX());
+            }
 
             uint64_t touchElapsed = time - tap.lastTouchTime;
             NSUInteger touching = tap.touching;
@@ -181,16 +135,17 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
             NSInteger verticalMultiplier = discreteAdjust ? -WinKeyDiscreteScrollStepSize : -1;
             NSInteger horizontalMultiplier = -1;
             tap.scrollEventCount += 1;
-            tap.lastDebugSummary = [NSString stringWithFormat:@"events=%lu synthetic=%lu continuous=%@ y=%lld yPt=%lld yFp=%.2f x=%lld xPt=%lld xFp=%.2f",
+            tap.lastDebugSummary = [NSString stringWithFormat:@"events=%lu continuous=%@ y=%lld yPt=%lld yFp=%.2f yHID=%.2f x=%lld xPt=%lld xFp=%.2f xHID=%.2f",
                                     (unsigned long)tap.scrollEventCount,
-                                    (unsigned long)tap.synthesizedScrollEventCount,
                                     continuous ? @"yes" : @"no",
                                     axis1,
                                     pointAxis1,
                                     fixedAxis1,
+                                    ioHIDAxis1,
                                     axis2,
                                     pointAxis2,
-                                    fixedAxis2];
+                                    fixedAxis2,
+                                    ioHIDAxis2];
             WinKeyWriteScrollDiagnostics(tap);
 
             if (!tap.didLogFirstScrollReversal) {
@@ -207,29 +162,6 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
                       ioHIDEvent ? @"true" : @"false");
             }
 
-            if (!continuous) {
-                int32_t vertical = WinKeySyntheticLineValue(axis1, pointAxis1, fixedAxis1, verticalMultiplier);
-                int32_t horizontal = WinKeySyntheticLineValue(axis2, pointAxis2, fixedAxis2, horizontalMultiplier);
-                if (tap.invertSyntheticScrollSign) {
-                    vertical = -vertical;
-                    horizontal = -horizontal;
-                }
-
-                if (WinKeyPostSyntheticScrollEvent(vertical, horizontal)) {
-                    tap.synthesizedScrollEventCount += 1;
-                    tap.lastDebugSummary = [NSString stringWithFormat:@"events=%lu synthetic=%lu fallback=yes yOut=%d xOut=%d",
-                                            (unsigned long)tap.scrollEventCount,
-                                            (unsigned long)tap.synthesizedScrollEventCount,
-                                            vertical,
-                                            horizontal];
-                    WinKeyWriteScrollDiagnostics(tap);
-                    if (ioHIDEvent) {
-                        WinKeyIOHIDEventRelease(ioHIDEvent);
-                    }
-                    return NULL;
-                }
-            }
-
             if (axis1 != 0 || pointAxis1 != 0 || fixedAxis1 != 0) {
                 if (axis1 != 0) {
                     CGEventSetIntegerValueField(eventRef, kCGScrollWheelEventDeltaAxis1, axis1 * verticalMultiplier);
@@ -240,8 +172,7 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
                     CGEventSetIntegerValueField(eventRef, kCGScrollWheelEventPointDeltaAxis1, pointAxis1 * verticalMultiplier);
 
                     if (ioHIDEvent) {
-                        double value = WinKeyIOHIDEventGetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollY());
-                        WinKeyIOHIDEventSetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollY(), value * verticalMultiplier);
+                        WinKeyIOHIDEventSetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollY(), ioHIDAxis1 * verticalMultiplier);
                     }
                 }
             }
@@ -254,10 +185,33 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
                 CGEventSetIntegerValueField(eventRef, kCGScrollWheelEventPointDeltaAxis2, pointAxis2 * horizontalMultiplier);
 
                 if (ioHIDEvent) {
-                    double value = WinKeyIOHIDEventGetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollX());
-                    WinKeyIOHIDEventSetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollX(), value * horizontalMultiplier);
+                    WinKeyIOHIDEventSetFloatValue(ioHIDEvent, WinKeyIOHIDEventFieldScrollX(), ioHIDAxis2 * horizontalMultiplier);
                 }
             }
+
+            int64_t outAxis1 = CGEventGetIntegerValueField(eventRef, kCGScrollWheelEventDeltaAxis1);
+            int64_t outAxis2 = CGEventGetIntegerValueField(eventRef, kCGScrollWheelEventDeltaAxis2);
+            int64_t outPointAxis1 = CGEventGetIntegerValueField(eventRef, kCGScrollWheelEventPointDeltaAxis1);
+            int64_t outPointAxis2 = CGEventGetIntegerValueField(eventRef, kCGScrollWheelEventPointDeltaAxis2);
+            double outFixedAxis1 = CGEventGetDoubleValueField(eventRef, kCGScrollWheelEventFixedPtDeltaAxis1);
+            double outFixedAxis2 = CGEventGetDoubleValueField(eventRef, kCGScrollWheelEventFixedPtDeltaAxis2);
+            tap.lastDebugSummary = [NSString stringWithFormat:@"events=%lu mutated=yes continuous=%@ y=%lld->%lld yPt=%lld->%lld yFp=%.2f->%.2f x=%lld->%lld xPt=%lld->%lld xFp=%.2f->%.2f hid=%@",
+                                    (unsigned long)tap.scrollEventCount,
+                                    continuous ? @"yes" : @"no",
+                                    axis1,
+                                    outAxis1,
+                                    pointAxis1,
+                                    outPointAxis1,
+                                    fixedAxis1,
+                                    outFixedAxis1,
+                                    axis2,
+                                    outAxis2,
+                                    pointAxis2,
+                                    outPointAxis2,
+                                    fixedAxis2,
+                                    outFixedAxis2,
+                                    ioHIDEvent ? @"yes" : @"no"];
+            WinKeyWriteScrollDiagnostics(tap);
 
             if (ioHIDEvent) {
                 WinKeyIOHIDEventRelease(ioHIDEvent);
@@ -288,7 +242,6 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
     self.lastSource = WinKeyScrollSourceMouse;
     self.didLogFirstScrollReversal = NO;
     self.scrollEventCount = 0;
-    self.synthesizedScrollEventCount = 0;
     self.lastDebugSummary = @"No scroll events yet";
 
     self.passiveTapPort = CGEventTapCreate(

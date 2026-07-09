@@ -33,7 +33,6 @@ final class SettingsStore {
         static let altAClipboardScreenshot = "altAClipboardScreenshot"
         static let screenshotShortcutModifier = "screenshotShortcutModifier"
         static let reverseScrollWheel = "reverseScrollWheel"
-        static let invertSyntheticScrollSign = "invertSyntheticScrollSign"
         static let launchAtLogin = "launchAtLogin"
     }
 
@@ -54,7 +53,6 @@ final class SettingsStore {
             Key.altAClipboardScreenshot: true,
             Key.screenshotShortcutModifier: ScreenshotShortcutModifier.option.rawValue,
             Key.reverseScrollWheel: false,
-            Key.invertSyntheticScrollSign: false,
             Key.launchAtLogin: false
         ])
     }
@@ -127,11 +125,6 @@ final class SettingsStore {
     var reverseScrollWheel: Bool {
         get { defaults.bool(forKey: Key.reverseScrollWheel) }
         set { defaults.set(newValue, forKey: Key.reverseScrollWheel) }
-    }
-
-    var invertSyntheticScrollSign: Bool {
-        get { defaults.bool(forKey: Key.invertSyntheticScrollSign) }
-        set { defaults.set(newValue, forKey: Key.invertSyntheticScrollSign) }
     }
 
     var launchAtLogin: Bool {

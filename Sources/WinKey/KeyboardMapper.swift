@@ -154,12 +154,12 @@ final class KeyboardMapper {
         }
 
         if settings.printScreen, keyCode == KeyCode.f13PrintScreen {
-            sendShortcut(keyCode: KeyCode.number3, flags: [.maskCommand, .maskShift])
+            ScreenshotSaver.captureFullScreenToDesktop()
             return nil
         }
 
         if settings.altAClipboardScreenshot, keyCode == KeyCode.a, matchesScreenshotShortcut(flags) {
-            sendShortcut(keyCode: KeyCode.number4, flags: [.maskCommand, .maskControl, .maskShift])
+            ScreenshotSaver.captureInteractiveToDesktop()
             return nil
         }
 

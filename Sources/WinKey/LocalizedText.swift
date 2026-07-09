@@ -43,15 +43,15 @@ enum LocalizedText {
 
     static func printScreen(_ language: AppLanguage) -> String {
         switch language {
-        case .english: return "PrtSc full-screen screenshot"
-        case .chinese: return "PrtSc 全屏截屏"
+        case .english: return "PrtSc save full-screen screenshot"
+        case .chinese: return "PrtSc 全屏截图保存到桌面"
         }
     }
 
     static func clipboardScreenshot(_ language: AppLanguage) -> String {
         switch language {
-        case .english: return "Manual screenshot to clipboard"
-        case .chinese: return "手动截图并复制"
+        case .english: return "Manual screenshot to Desktop and clipboard"
+        case .chinese: return "手动截图保存到桌面并复制"
         }
     }
 

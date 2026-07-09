@@ -5,8 +5,8 @@ WinKey 是一个 macOS 菜单栏小工具，用来让外接 Windows/PC 键盘保
 ## 功能
 
 - Finder 中按 PC 键盘的 `Delete` 时，确认后将所选文件移到废纸篓。
-- 按 `PrtSc` 触发 macOS 全屏截屏。
-- 按 `Option + A` 或 `Command + A` 触发 macOS 基础区域截图，截图结果复制到剪贴板，可在菜单中切换触发键。
+- 按 `PrtSc` 全屏截图，并按当前时间命名保存到桌面。
+- 按 `Option + A` 或 `Command + A` 触发 macOS 基础区域截图，截图按当前时间命名保存到桌面，并同时复制到剪贴板；可在菜单中切换触发键。
 - 按 `Ctrl + A` 映射为 macOS 的全选。
 - 支持常用 Windows `Ctrl` 快捷键：复制、粘贴、剪切、撤销、重做、查找、保存、打印、关闭、新建标签、新建窗口、打开、刷新、恢复关闭标签、新建文件夹。
 - 在文本输入区域中支持 `Home` / `End`、`Ctrl + Left/Right`、`Ctrl + Home/End` 的 Windows 风格导航。

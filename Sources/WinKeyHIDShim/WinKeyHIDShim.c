@@ -1,4 +1,5 @@
 #include "WinKeyHIDShim.h"
+#include <IOKit/hidsystem/IOHIDLib.h>
 
 typedef struct __IOHIDEvent *IOHIDEventRef;
 typedef double IOHIDFloat;
@@ -46,4 +47,9 @@ uint32_t WinKeyIOHIDEventFieldScrollX(void)
 uint32_t WinKeyIOHIDEventFieldScrollY(void)
 {
     return kWinKeyIOHIDEventFieldScrollY;
+}
+
+int WinKeyIOHIDListenEventAccessGranted(void)
+{
+    return IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted;
 }

@@ -21,6 +21,7 @@ final class StatusMenuController: NSObject {
     private let reverseScrollItem = NSMenuItem()
     private let launchAtLoginItem = NSMenuItem()
     private let languageItem = NSMenuItem()
+    private let inputMonitoringItem = NSMenuItem()
     private let versionItem = NSMenuItem()
 
     init(
@@ -53,6 +54,7 @@ final class StatusMenuController: NSObject {
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: launchAtLoginItem, action: #selector(toggleLaunchAtLogin))
         configure(item: languageItem, action: #selector(toggleLanguage))
+        configure(item: inputMonitoringItem, action: #selector(openInputMonitoringSettings))
 
         let permissionItem = NSMenuItem(
             title: "",
@@ -86,6 +88,7 @@ final class StatusMenuController: NSObject {
         menu.addItem(launchAtLoginItem)
         menu.addItem(languageItem)
         menu.addItem(permissionItem)
+        menu.addItem(inputMonitoringItem)
         menu.addItem(.separator())
         menu.addItem(versionItem)
         menu.addItem(quitItem)
@@ -102,10 +105,13 @@ final class StatusMenuController: NSObject {
 
     func refresh() {
         let language = settings.language
+        let inputMonitoringNeeded = settings.reverseScrollWheel && !InputMonitoringPermission.isTrusted
         statusItem.button?.toolTip = LocalizedText.appToolTip(language)
 
         if !AccessibilityPermission.isTrusted {
             statusMenuItem.title = LocalizedText.statusUnauthorized(language)
+        } else if inputMonitoringNeeded {
+            statusMenuItem.title = LocalizedText.statusInputMonitoringNeeded(language)
         } else if settings.enabled {
             statusMenuItem.title = LocalizedText.statusEnabled(language)
         } else {
@@ -148,6 +154,8 @@ final class StatusMenuController: NSObject {
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
 
         languageItem.title = LocalizedText.languageMenu(language)
+        inputMonitoringItem.title = LocalizedText.openInputMonitoringSettings(language)
+        inputMonitoringItem.isHidden = !inputMonitoringNeeded
 
         if let permissionItem = statusItem.menu?.items.first(where: { $0.action == #selector(openPermissionSettings) }) {
             permissionItem.title = LocalizedText.openAccessibilitySettings(language)
@@ -160,7 +168,7 @@ final class StatusMenuController: NSObject {
         versionItem.title = LocalizedText.version(language)
         versionItem.isEnabled = false
 
-        statusItem.button?.title = AccessibilityPermission.isTrusted && settings.enabled ? "WinKey" : "WinKey!"
+        statusItem.button?.title = AccessibilityPermission.isTrusted && settings.enabled && !inputMonitoringNeeded ? "WinKey" : "WinKey!"
         permissionWindow.refreshLanguage(language)
     }
 
@@ -276,6 +284,11 @@ final class StatusMenuController: NSObject {
         AccessibilityPermission.requestPrompt()
         AccessibilityPermission.openSystemSettings()
         keyboardMapper.restart()
+        refresh()
+    }
+
+    @objc private func openInputMonitoringSettings() {
+        InputMonitoringPermission.openSystemSettings()
         refresh()
     }
 

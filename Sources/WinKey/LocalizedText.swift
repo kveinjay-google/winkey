@@ -27,6 +27,13 @@ enum LocalizedText {
         }
     }
 
+    static func statusInputMonitoringNeeded(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Status: Input Monitoring needed"
+        case .chinese: return "状态：需要输入监控权限"
+        }
+    }
+
     static func enableKeyboardHabits(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Enable Windows keyboard habits"
@@ -115,6 +122,13 @@ enum LocalizedText {
         switch language {
         case .english: return "Open Accessibility Settings..."
         case .chinese: return "打开辅助功能权限设置..."
+        }
+    }
+
+    static func openInputMonitoringSettings(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Open Input Monitoring Settings..."
+        case .chinese: return "打开输入监控权限设置..."
         }
     }
 

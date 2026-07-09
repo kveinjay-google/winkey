@@ -68,5 +68,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         scrollReverser.start()
         scrollReverser.isEnabled = settings.enabled && settings.reverseScrollWheel
+        scrollReverser.invertSyntheticScrollSign = settings.invertSyntheticScrollSign
     }
 }

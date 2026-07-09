@@ -195,6 +195,10 @@ static CGEventRef WinKeyScrollCallback(CGEventTapProxy proxy, CGEventType type, 
             if (!continuous) {
                 int32_t vertical = WinKeySyntheticLineValue(axis1, pointAxis1, fixedAxis1, verticalMultiplier);
                 int32_t horizontal = WinKeySyntheticLineValue(axis2, pointAxis2, fixedAxis2, horizontalMultiplier);
+                if (tap.invertSyntheticScrollSign) {
+                    vertical = -vertical;
+                    horizontal = -horizontal;
+                }
 
                 if (WinKeyPostSyntheticScrollEvent(vertical, horizontal)) {
                     tap.synthesizedScrollEventCount += 1;

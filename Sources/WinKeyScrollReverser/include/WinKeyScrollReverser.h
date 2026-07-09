@@ -8,6 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface WinKeyScrollReverser : NSObject
 
 @property (nonatomic, getter=isEnabled) BOOL enabled;
+@property (nonatomic) BOOL invertSyntheticScrollSign;
 @property (nonatomic, readonly, getter=isActive) BOOL active;
 @property (nonatomic, readonly) NSUInteger scrollEventCount;
 @property (nonatomic, readonly) NSUInteger synthesizedScrollEventCount;

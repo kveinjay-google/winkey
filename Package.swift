@@ -25,6 +25,11 @@ let package = Package(
             name: "WinKey",
             dependencies: ["WinKeyHIDShim", "WinKeyScrollReverser"],
             path: "Sources/WinKey"
+        ),
+        .testTarget(
+            name: "WinKeyTests",
+            dependencies: ["WinKey"],
+            path: "Tests/WinKeyTests"
         )
     ]
 )

@@ -2,6 +2,11 @@ import AppKit
 import Foundation
 
 enum ScreenshotSaver {
+    struct PasteboardContents {
+        let pngData: Data
+        let fileURL: URL
+    }
+
     private static let filenameFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -20,8 +25,12 @@ enum ScreenshotSaver {
                 return
             }
 
-            copyImageToPasteboard(at: path)
+            copyScreenshotToPasteboard(at: path)
         }
+    }
+
+    static func pasteboardContents(imageData: Data, fileURL: URL) -> PasteboardContents {
+        PasteboardContents(pngData: imageData, fileURL: fileURL)
     }
 
     private static func desktopScreenshotPath() -> String {
@@ -48,17 +57,22 @@ enum ScreenshotSaver {
         }
     }
 
-    private static func copyImageToPasteboard(at path: String) {
+    private static func copyScreenshotToPasteboard(at path: String) {
         let url = URL(fileURLWithPath: path)
 
         DispatchQueue.main.async {
-            guard let image = NSImage(contentsOf: url) else {
+            guard let imageData = try? Data(contentsOf: url) else {
                 return
             }
 
+            let contents = pasteboardContents(imageData: imageData, fileURL: url)
+            let item = NSPasteboardItem()
+            item.setData(contents.pngData, forType: .png)
+            item.setString(contents.fileURL.absoluteString, forType: .fileURL)
+
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
-            pasteboard.writeObjects([image])
+            pasteboard.writeObjects([item])
         }
     }
 }

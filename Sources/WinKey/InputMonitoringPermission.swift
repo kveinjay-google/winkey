@@ -3,12 +3,13 @@ import WinKeyHIDShim
 
 enum InputMonitoringPermission {
     static var isTrusted: Bool {
-        WinKeyIOHIDListenEventAccessGranted() != 0
+        WinKeyCGListenEventAccessGranted() != 0 && WinKeyCGPostEventAccessGranted() != 0
     }
 
     static func requestPrompt() {
         DispatchQueue.global(qos: .userInitiated).async {
-            WinKeyIOHIDRequestListenEventAccess()
+            WinKeyCGRequestListenEventAccess()
+            WinKeyCGRequestPostEventAccess()
         }
     }
 

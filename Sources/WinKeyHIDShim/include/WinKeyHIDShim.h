@@ -21,6 +21,10 @@ uint32_t WinKeyIOHIDEventFieldScrollX(void);
 uint32_t WinKeyIOHIDEventFieldScrollY(void);
 int WinKeyIOHIDListenEventAccessGranted(void);
 void WinKeyIOHIDRequestListenEventAccess(void);
+int WinKeyCGListenEventAccessGranted(void);
+void WinKeyCGRequestListenEventAccess(void);
+int WinKeyCGPostEventAccessGranted(void);
+void WinKeyCGRequestPostEventAccess(void);
 
 #ifdef __cplusplus
 }

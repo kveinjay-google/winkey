@@ -58,3 +58,23 @@ void WinKeyIOHIDRequestListenEventAccess(void)
 {
     IOHIDRequestAccess(kIOHIDRequestTypeListenEvent);
 }
+
+int WinKeyCGListenEventAccessGranted(void)
+{
+    return CGPreflightListenEventAccess();
+}
+
+void WinKeyCGRequestListenEventAccess(void)
+{
+    CGRequestListenEventAccess();
+}
+
+int WinKeyCGPostEventAccessGranted(void)
+{
+    return CGPreflightPostEventAccess();
+}
+
+void WinKeyCGRequestPostEventAccess(void)
+{
+    CGRequestPostEventAccess();
+}

@@ -9,6 +9,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, getter=isEnabled) BOOL enabled;
 @property (nonatomic, readonly, getter=isActive) BOOL active;
+@property (nonatomic, readonly) NSUInteger scrollEventCount;
+@property (nonatomic, readonly) NSUInteger synthesizedScrollEventCount;
+@property (nonatomic, copy, readonly) NSString *lastDebugSummary;
 
 - (void)start;
 - (void)stop;

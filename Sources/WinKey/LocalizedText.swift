@@ -111,13 +111,6 @@ enum LocalizedText {
         }
     }
 
-    static func scrollDiagnostics(_ language: AppLanguage, summary: String) -> String {
-        switch language {
-        case .english: return "Scroll debug: \(summary)"
-        case .chinese: return "滚轮调试：\(summary)"
-        }
-    }
-
     static func launchAtLogin(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Launch at login"

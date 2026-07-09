@@ -21,7 +21,6 @@ final class StatusMenuController: NSObject {
     private let screenshotShortcutItem = NSMenuItem()
     private let altTabItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
-    private let scrollDiagnosticsItem = NSMenuItem()
     private let launchAtLoginItem = NSMenuItem()
     private let languageItem = NSMenuItem()
     private let inputMonitoringItem = NSMenuItem()
@@ -58,7 +57,6 @@ final class StatusMenuController: NSObject {
         configure(item: screenshotShortcutItem, action: #selector(toggleScreenshotShortcut))
         configure(item: altTabItem, action: #selector(toggleAltTab))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
-        configure(item: scrollDiagnosticsItem, action: nil)
         configure(item: launchAtLoginItem, action: #selector(toggleLaunchAtLogin))
         configure(item: languageItem, action: #selector(toggleLanguage))
         configure(item: inputMonitoringItem, action: #selector(openInputMonitoringSettings))
@@ -91,7 +89,6 @@ final class StatusMenuController: NSObject {
         menu.addItem(ctrlCommonShortcutsItem)
         menu.addItem(altTabItem)
         menu.addItem(reverseScrollItem)
-        menu.addItem(scrollDiagnosticsItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(languageItem)
@@ -157,9 +154,6 @@ final class StatusMenuController: NSObject {
 
         reverseScrollItem.title = LocalizedText.reverseScroll(language)
         reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
-        scrollDiagnosticsItem.title = LocalizedText.scrollDiagnostics(language, summary: scrollReverser.lastDebugSummary)
-        scrollDiagnosticsItem.isEnabled = false
-        scrollDiagnosticsItem.isHidden = !settings.reverseScrollWheel
 
         launchAtLoginItem.title = LocalizedText.launchAtLogin(language)
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off

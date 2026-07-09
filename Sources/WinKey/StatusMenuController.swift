@@ -1,9 +1,11 @@
 import AppKit
 import ServiceManagement
+import WinKeyScrollReverser
 
 final class StatusMenuController: NSObject {
     private let settings: SettingsStore
     private let keyboardMapper: KeyboardMapper
+    private let scrollReverser: WinKeyScrollReverser
     private let permissionWindow: PermissionWindowController
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -27,10 +29,12 @@ final class StatusMenuController: NSObject {
     init(
         settings: SettingsStore,
         keyboardMapper: KeyboardMapper,
+        scrollReverser: WinKeyScrollReverser,
         permissionWindow: PermissionWindowController
     ) {
         self.settings = settings
         self.keyboardMapper = keyboardMapper
+        self.scrollReverser = scrollReverser
         self.permissionWindow = permissionWindow
         super.init()
     }
@@ -202,6 +206,7 @@ final class StatusMenuController: NSObject {
     @objc private func toggleEnabled() {
         settings.enabled.toggle()
         keyboardMapper.restart()
+        updateScrollReverser()
         refresh()
     }
 
@@ -252,6 +257,7 @@ final class StatusMenuController: NSObject {
 
     @objc private func toggleReverseScroll() {
         settings.reverseScrollWheel.toggle()
+        updateScrollReverser()
         refresh()
     }
 
@@ -303,5 +309,14 @@ final class StatusMenuController: NSObject {
         alert.informativeText = message
         alert.alertStyle = .warning
         alert.runModal()
+    }
+
+    private func updateScrollReverser() {
+        if AccessibilityPermission.isTrusted {
+            scrollReverser.start()
+            scrollReverser.isEnabled = settings.enabled && settings.reverseScrollWheel
+        } else {
+            scrollReverser.stop()
+        }
     }
 }

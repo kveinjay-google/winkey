@@ -1,16 +1,11 @@
 import AppKit
 import ApplicationServices
-import WinKeyHIDShim
 
 final class KeyboardMapper {
     private let settings: SettingsStore
     private var keyboardEventTap: CFMachPort?
     private var keyboardRunLoopSource: CFRunLoopSource?
-    private var scrollEventTap: CFMachPort?
-    private var scrollRunLoopSource: CFRunLoopSource?
     private let syntheticEventMarker: Int64 = 0x57494E4B4559
-    private let discreteScrollStepSize: Int64 = 3
-    private var didLogFirstScrollReversal = false
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -25,7 +20,6 @@ final class KeyboardMapper {
         }
 
         let keyboardMask = 1 << CGEventType.keyDown.rawValue
-        let scrollMask = 1 << CGEventType.scrollWheel.rawValue
         let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
         if let tap = CGEvent.tapCreate(
@@ -48,27 +42,6 @@ final class KeyboardMapper {
         } else {
             NSLog("WinKey failed to create keyboard event tap")
         }
-
-        if let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .tailAppendEventTap,
-            options: .defaultTap,
-            eventsOfInterest: CGEventMask(scrollMask),
-            callback: KeyboardMapper.eventTapCallback,
-            userInfo: userInfo
-        ) {
-            scrollEventTap = tap
-            scrollRunLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-
-            if let scrollRunLoopSource {
-                CFRunLoopAddSource(CFRunLoopGetMain(), scrollRunLoopSource, .commonModes)
-            }
-
-            CGEvent.tapEnable(tap: tap, enable: true)
-            NSLog("WinKey scroll event tap started")
-        } else {
-            NSLog("WinKey failed to create scroll event tap")
-        }
     }
 
     func stop() {
@@ -76,22 +49,12 @@ final class KeyboardMapper {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
 
-        if let tap = scrollEventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-        }
-
         if let keyboardRunLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), keyboardRunLoopSource, .commonModes)
         }
 
-        if let scrollRunLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), scrollRunLoopSource, .commonModes)
-        }
-
         keyboardRunLoopSource = nil
         keyboardEventTap = nil
-        scrollRunLoopSource = nil
-        scrollEventTap = nil
     }
 
     func restart() {
@@ -109,14 +72,7 @@ final class KeyboardMapper {
             if let tap = mapper.keyboardEventTap {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
-            if let tap = mapper.scrollEventTap {
-                CGEvent.tapEnable(tap: tap, enable: true)
-            }
             return Unmanaged.passUnretained(event)
-        }
-
-        if type == .scrollWheel {
-            return mapper.handleScrollWheel(event)
         }
 
         guard type == .keyDown else {
@@ -124,83 +80,6 @@ final class KeyboardMapper {
         }
 
         return mapper.handleKeyDown(event)
-    }
-
-    private func handleScrollWheel(_ event: CGEvent) -> Unmanaged<CGEvent>? {
-        guard settings.reverseScrollWheel else {
-            return Unmanaged.passUnretained(event)
-        }
-
-        reverseScrollDelta(in: event)
-
-        return Unmanaged.passUnretained(event)
-    }
-
-    private func reverseScrollDelta(in event: CGEvent) {
-        let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
-        let verticalDelta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
-        let horizontalDelta = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
-        let verticalPointDelta = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
-        let horizontalPointDelta = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
-        let verticalFixedPointDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
-        let horizontalFixedPointDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
-        let hidEvent = WinKeyCGEventCopyIOHIDEvent(event)?.takeRetainedValue()
-
-        if !didLogFirstScrollReversal {
-            didLogFirstScrollReversal = true
-            NSLog(
-                "WinKey reversing scroll event: continuous=%@ verticalDelta=%lld verticalPoint=%lld verticalFixed=%f horizontalDelta=%lld horizontalPoint=%lld horizontalFixed=%f hid=%@",
-                isContinuous ? "true" : "false",
-                verticalDelta,
-                verticalPointDelta,
-                verticalFixedPointDelta,
-                horizontalDelta,
-                horizontalPointDelta,
-                horizontalFixedPointDelta,
-                hidEvent == nil ? "false" : "true"
-            )
-        }
-
-        if verticalDelta != 0 || verticalPointDelta != 0 || verticalFixedPointDelta != 0 {
-            let discreteAdjust = !isContinuous && abs(verticalDelta) == 1
-            let verticalMultiplier = discreteAdjust ? -discreteScrollStepSize : -1
-
-            if verticalDelta != 0 {
-                event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: verticalDelta * verticalMultiplier)
-            }
-
-            if isContinuous {
-                event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: -verticalFixedPointDelta)
-                event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: -verticalPointDelta)
-
-                if let hidEvent {
-                    let value = WinKeyIOHIDEventGetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollY())
-                    WinKeyIOHIDEventSetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollY(), -value)
-                }
-            } else if verticalDelta == 0 {
-                event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: -verticalFixedPointDelta)
-                event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: -verticalPointDelta)
-            }
-        }
-
-        if horizontalDelta != 0 || horizontalPointDelta != 0 || horizontalFixedPointDelta != 0 {
-            if horizontalDelta != 0 {
-                event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: -horizontalDelta)
-            }
-
-            if isContinuous {
-                event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: -horizontalFixedPointDelta)
-                event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: -horizontalPointDelta)
-
-                if let hidEvent {
-                    let value = WinKeyIOHIDEventGetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollX())
-                    WinKeyIOHIDEventSetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollX(), -value)
-                }
-            } else if horizontalDelta == 0 {
-                event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: -horizontalFixedPointDelta)
-                event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: -horizontalPointDelta)
-            }
-        }
     }
 
     private func handleKeyDown(_ event: CGEvent) -> Unmanaged<CGEvent>? {

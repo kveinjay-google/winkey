@@ -1,20 +1,24 @@
 import AppKit
+import WinKeyScrollReverser
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = SettingsStore()
     private var permissionTimer: Timer?
     private var lastTrustedState = AccessibilityPermission.isTrusted
     private lazy var keyboardMapper = KeyboardMapper(settings: settings)
+    private lazy var scrollReverser = WinKeyScrollReverser()
     private lazy var permissionWindow = PermissionWindowController(settings: settings)
     private lazy var statusMenu = StatusMenuController(
         settings: settings,
         keyboardMapper: keyboardMapper,
+        scrollReverser: scrollReverser,
         permissionWindow: permissionWindow
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusMenu.install()
         keyboardMapper.startIfPossible()
+        updateScrollReverser()
         startPermissionPolling()
 
         if !AccessibilityPermission.isTrusted {
@@ -26,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         permissionTimer?.invalidate()
         keyboardMapper.stop()
+        scrollReverser.stop()
     }
 
     private func startPermissionPolling() {
@@ -46,10 +51,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if isTrusted {
             permissionWindow.close()
             keyboardMapper.startIfPossible()
+            updateScrollReverser()
         } else {
             keyboardMapper.stop()
+            scrollReverser.stop()
         }
 
         statusMenu.refresh()
+    }
+
+    private func updateScrollReverser() {
+        guard AccessibilityPermission.isTrusted else {
+            scrollReverser.stop()
+            return
+        }
+
+        scrollReverser.start()
+        scrollReverser.isEnabled = settings.enabled && settings.reverseScrollWheel
     }
 }

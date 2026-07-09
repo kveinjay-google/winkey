@@ -15,9 +15,15 @@ let package = Package(
             name: "WinKeyHIDShim",
             path: "Sources/WinKeyHIDShim"
         ),
+        .target(
+            name: "WinKeyScrollReverser",
+            dependencies: ["WinKeyHIDShim"],
+            path: "Sources/WinKeyScrollReverser",
+            publicHeadersPath: "include"
+        ),
         .executableTarget(
             name: "WinKey",
-            dependencies: ["WinKeyHIDShim"],
+            dependencies: ["WinKeyHIDShim", "WinKeyScrollReverser"],
             path: "Sources/WinKey"
         )
     ]

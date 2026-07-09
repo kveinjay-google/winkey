@@ -53,3 +53,8 @@ int WinKeyIOHIDListenEventAccessGranted(void)
 {
     return IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted;
 }
+
+void WinKeyIOHIDRequestListenEventAccess(void)
+{
+    IOHIDRequestAccess(kIOHIDRequestTypeListenEvent);
+}

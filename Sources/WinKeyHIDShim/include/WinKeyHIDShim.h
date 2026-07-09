@@ -20,6 +20,7 @@ void WinKeyIOHIDEventRelease(CFTypeRef _Nullable event);
 uint32_t WinKeyIOHIDEventFieldScrollX(void);
 uint32_t WinKeyIOHIDEventFieldScrollY(void);
 int WinKeyIOHIDListenEventAccessGranted(void);
+void WinKeyIOHIDRequestListenEventAccess(void);
 
 #ifdef __cplusplus
 }

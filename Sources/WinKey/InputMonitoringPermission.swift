@@ -6,6 +6,12 @@ enum InputMonitoringPermission {
         WinKeyIOHIDListenEventAccessGranted() != 0
     }
 
+    static func requestPrompt() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            WinKeyIOHIDRequestListenEventAccess()
+        }
+    }
+
     static func openSystemSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") else {
             return

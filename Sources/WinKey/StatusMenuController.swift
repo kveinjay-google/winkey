@@ -288,6 +288,7 @@ final class StatusMenuController: NSObject {
     }
 
     @objc private func openInputMonitoringSettings() {
+        InputMonitoringPermission.requestPrompt()
         InputMonitoringPermission.openSystemSettings()
         refresh()
     }

@@ -9,6 +9,8 @@ final class KeyboardMapper {
     private var scrollEventTap: CFMachPort?
     private var scrollRunLoopSource: CFRunLoopSource?
     private let syntheticEventMarker: Int64 = 0x57494E4B4559
+    private let discreteScrollStepSize: Int64 = 3
+    private var didLogFirstScrollReversal = false
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -144,8 +146,28 @@ final class KeyboardMapper {
         let horizontalFixedPointDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
         let hidEvent = WinKeyCGEventCopyIOHIDEvent(event)?.takeRetainedValue()
 
+        if !didLogFirstScrollReversal {
+            didLogFirstScrollReversal = true
+            NSLog(
+                "WinKey reversing scroll event: continuous=%@ verticalDelta=%lld verticalPoint=%lld verticalFixed=%f horizontalDelta=%lld horizontalPoint=%lld horizontalFixed=%f hid=%@",
+                isContinuous ? "true" : "false",
+                verticalDelta,
+                verticalPointDelta,
+                verticalFixedPointDelta,
+                horizontalDelta,
+                horizontalPointDelta,
+                horizontalFixedPointDelta,
+                hidEvent == nil ? "false" : "true"
+            )
+        }
+
         if verticalDelta != 0 || verticalPointDelta != 0 || verticalFixedPointDelta != 0 {
-            event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: -verticalDelta)
+            let discreteAdjust = !isContinuous && abs(verticalDelta) == 1
+            let verticalMultiplier = discreteAdjust ? -discreteScrollStepSize : -1
+
+            if verticalDelta != 0 {
+                event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: verticalDelta * verticalMultiplier)
+            }
 
             if isContinuous {
                 event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: -verticalFixedPointDelta)
@@ -155,11 +177,16 @@ final class KeyboardMapper {
                     let value = WinKeyIOHIDEventGetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollY())
                     WinKeyIOHIDEventSetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollY(), -value)
                 }
+            } else if verticalDelta == 0 {
+                event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: -verticalFixedPointDelta)
+                event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: -verticalPointDelta)
             }
         }
 
         if horizontalDelta != 0 || horizontalPointDelta != 0 || horizontalFixedPointDelta != 0 {
-            event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: -horizontalDelta)
+            if horizontalDelta != 0 {
+                event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: -horizontalDelta)
+            }
 
             if isContinuous {
                 event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: -horizontalFixedPointDelta)
@@ -169,6 +196,9 @@ final class KeyboardMapper {
                     let value = WinKeyIOHIDEventGetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollX())
                     WinKeyIOHIDEventSetFloatValue(hidEvent, WinKeyIOHIDEventFieldScrollX(), -value)
                 }
+            } else if horizontalDelta == 0 {
+                event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: -horizontalFixedPointDelta)
+                event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: -horizontalPointDelta)
             }
         }
     }

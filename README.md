@@ -38,6 +38,16 @@ scripts/build-app.sh
 
 ## 安装与使用
 
+### 下载预编译版
+
+前往 GitHub Releases 页面下载最新的 `WinKey-x.y.z.zip`：
+
+https://github.com/kveinjay-google/winkey/releases
+
+下载后解压 `WinKey.app`，按下面的“从源码构建”或直接拖到 `/Applications` 后右键打开（当前为 ad-hoc 签名，需要 macOS 14+ 或在 系统设置 → 隐私与安全性 中允许打开）。
+
+### 从源码构建
+
 1. 运行 `scripts/build-app.sh` 生成 `dist/WinKey.app`。
 2. 将 `dist/WinKey.app` 拖到 `/Applications`。
 3. 启动 WinKey。

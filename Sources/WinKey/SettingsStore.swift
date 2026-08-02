@@ -33,6 +33,8 @@ final class SettingsStore {
         static let altAClipboardScreenshot = "altAClipboardScreenshot"
         static let screenshotShortcutModifier = "screenshotShortcutModifier"
         static let reverseScrollWheel = "reverseScrollWheel"
+        static let preventIdleSleep = "preventIdleSleep"
+        static let externalDisplayMouseWake = "externalDisplayMouseWake"
         static let launchAtLogin = "launchAtLogin"
     }
 
@@ -53,6 +55,8 @@ final class SettingsStore {
             Key.altAClipboardScreenshot: true,
             Key.screenshotShortcutModifier: ScreenshotShortcutModifier.option.rawValue,
             Key.reverseScrollWheel: false,
+            Key.preventIdleSleep: false,
+            Key.externalDisplayMouseWake: false,
             Key.launchAtLogin: false
         ])
     }
@@ -125,6 +129,16 @@ final class SettingsStore {
     var reverseScrollWheel: Bool {
         get { defaults.bool(forKey: Key.reverseScrollWheel) }
         set { defaults.set(newValue, forKey: Key.reverseScrollWheel) }
+    }
+
+    var preventIdleSleep: Bool {
+        get { defaults.bool(forKey: Key.preventIdleSleep) }
+        set { defaults.set(newValue, forKey: Key.preventIdleSleep) }
+    }
+
+    var externalDisplayMouseWake: Bool {
+        get { defaults.bool(forKey: Key.externalDisplayMouseWake) }
+        set { defaults.set(newValue, forKey: Key.externalDisplayMouseWake) }
     }
 
     var launchAtLogin: Bool {

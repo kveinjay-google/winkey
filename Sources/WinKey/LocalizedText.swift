@@ -111,6 +111,20 @@ enum LocalizedText {
         }
     }
 
+    static func preventIdleSleep(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Prevent idle system sleep"
+        case .chinese: return "防止闲置睡眠"
+        }
+    }
+
+    static func externalDisplayMouseWake(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Wake external display with mouse"
+        case .chinese: return "鼠标唤醒外接显示器"
+        }
+    }
+
     static func launchAtLogin(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Launch at login"

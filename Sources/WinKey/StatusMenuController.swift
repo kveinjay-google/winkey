@@ -6,6 +6,7 @@ final class StatusMenuController: NSObject {
     private let settings: SettingsStore
     private let keyboardMapper: KeyboardMapper
     private let scrollReverser: WinKeyScrollReverser
+    private let powerManager: PowerManager
     private let permissionWindow: PermissionWindowController
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -21,6 +22,8 @@ final class StatusMenuController: NSObject {
     private let screenshotShortcutItem = NSMenuItem()
     private let altTabItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
+    private let preventIdleSleepItem = NSMenuItem()
+    private let externalDisplayMouseWakeItem = NSMenuItem()
     private let launchAtLoginItem = NSMenuItem()
     private let languageItem = NSMenuItem()
     private let inputMonitoringItem = NSMenuItem()
@@ -30,11 +33,13 @@ final class StatusMenuController: NSObject {
         settings: SettingsStore,
         keyboardMapper: KeyboardMapper,
         scrollReverser: WinKeyScrollReverser,
+        powerManager: PowerManager,
         permissionWindow: PermissionWindowController
     ) {
         self.settings = settings
         self.keyboardMapper = keyboardMapper
         self.scrollReverser = scrollReverser
+        self.powerManager = powerManager
         self.permissionWindow = permissionWindow
         super.init()
     }
@@ -57,6 +62,8 @@ final class StatusMenuController: NSObject {
         configure(item: screenshotShortcutItem, action: #selector(toggleScreenshotShortcut))
         configure(item: altTabItem, action: #selector(toggleAltTab))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
+        configure(item: preventIdleSleepItem, action: #selector(togglePreventIdleSleep))
+        configure(item: externalDisplayMouseWakeItem, action: #selector(toggleExternalDisplayMouseWake))
         configure(item: launchAtLoginItem, action: #selector(toggleLaunchAtLogin))
         configure(item: languageItem, action: #selector(toggleLanguage))
         configure(item: inputMonitoringItem, action: #selector(openInputMonitoringSettings))
@@ -89,6 +96,8 @@ final class StatusMenuController: NSObject {
         menu.addItem(ctrlCommonShortcutsItem)
         menu.addItem(altTabItem)
         menu.addItem(reverseScrollItem)
+        menu.addItem(preventIdleSleepItem)
+        menu.addItem(externalDisplayMouseWakeItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(languageItem)
@@ -154,6 +163,12 @@ final class StatusMenuController: NSObject {
 
         reverseScrollItem.title = LocalizedText.reverseScroll(language)
         reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
+
+        preventIdleSleepItem.title = LocalizedText.preventIdleSleep(language)
+        preventIdleSleepItem.state = settings.preventIdleSleep ? .on : .off
+
+        externalDisplayMouseWakeItem.title = LocalizedText.externalDisplayMouseWake(language)
+        externalDisplayMouseWakeItem.state = settings.externalDisplayMouseWake ? .on : .off
 
         launchAtLoginItem.title = LocalizedText.launchAtLogin(language)
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
@@ -262,6 +277,18 @@ final class StatusMenuController: NSObject {
         refresh()
     }
 
+    @objc private func togglePreventIdleSleep() {
+        settings.preventIdleSleep.toggle()
+        updatePowerManager()
+        refresh()
+    }
+
+    @objc private func toggleExternalDisplayMouseWake() {
+        settings.externalDisplayMouseWake.toggle()
+        updatePowerManager()
+        refresh()
+    }
+
     @objc private func toggleLanguage() {
         settings.language = settings.language == .english ? .chinese : .english
         refresh()
@@ -319,6 +346,13 @@ final class StatusMenuController: NSObject {
         } else {
             scrollReverser.stop()
         }
+    }
+
+    private func updatePowerManager() {
+        powerManager.update(
+            preventIdleSleep: settings.preventIdleSleep,
+            externalDisplayMouseWake: settings.externalDisplayMouseWake
+        )
     }
 }
 

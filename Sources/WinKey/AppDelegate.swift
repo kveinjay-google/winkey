@@ -7,11 +7,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastTrustedState = AccessibilityPermission.isTrusted
     private lazy var keyboardMapper = KeyboardMapper(settings: settings)
     private lazy var scrollReverser = WinKeyScrollReverser()
+    private lazy var powerManager = PowerManager()
     private lazy var permissionWindow = PermissionWindowController(settings: settings)
     private lazy var statusMenu = StatusMenuController(
         settings: settings,
         keyboardMapper: keyboardMapper,
         scrollReverser: scrollReverser,
+        powerManager: powerManager,
         permissionWindow: permissionWindow
     )
 
@@ -19,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusMenu.install()
         keyboardMapper.startIfPossible()
         updateScrollReverser()
+        updatePowerManager()
         startPermissionPolling()
 
         if !AccessibilityPermission.isTrusted {
@@ -31,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionTimer?.invalidate()
         keyboardMapper.stop()
         scrollReverser.stop()
+        powerManager.stop()
     }
 
     private func startPermissionPolling() {
@@ -52,9 +56,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             permissionWindow.close()
             keyboardMapper.startIfPossible()
             updateScrollReverser()
+            updatePowerManager()
         } else {
             keyboardMapper.stop()
             scrollReverser.stop()
+            updatePowerManager()
         }
 
         statusMenu.refresh()
@@ -68,5 +74,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         scrollReverser.start()
         scrollReverser.isEnabled = settings.enabled && settings.reverseScrollWheel
+    }
+
+    private func updatePowerManager() {
+        powerManager.update(
+            preventIdleSleep: settings.preventIdleSleep,
+            externalDisplayMouseWake: settings.externalDisplayMouseWake
+        )
     }
 }

@@ -12,6 +12,8 @@ WinKey 是一个 macOS 菜单栏小工具，用来让外接 Windows/PC 键盘保
 - 在文本输入区域中支持 `Home` / `End`、`Ctrl + Left/Right`、`Ctrl + Home/End` 的 Windows 风格导航。
 - 可选开启 `Alt + Tab` 到 `Command + Tab` 的应用切换映射，默认关闭。
 - 可选反转滚动方向，适合不习惯 macOS 自然滚动的用户。
+- 可选防止系统因闲置进入睡眠；显示器仍可按系统设置息屏。
+- 可选在连接外接显示器时，通过鼠标移动、点击或滚轮主动报告用户活跃，帮助唤醒息屏后的显示输出。
 - 菜单默认为英文，可在菜单中切换为中文。
 - 菜单栏常驻，支持单项开关和开机启动开关。
 
@@ -67,6 +69,8 @@ WinKey 不上传键盘输入，不连接网络，也不保存你的按键内容�
 当前仓库生成的是本地开发版 `.app`，使用 ad-hoc 签名。公开分发时建议使用 Apple Developer ID 签名并进行 notarization。
 
 滚动方向反转使用 CoreGraphics 事件 tap，并参考了 [Scroll Reverser](https://github.com/pilotmoon/Scroll-Reverser) 的做法，同时修改 CGEvent 滚动 delta 与底层 IOHID 滚动字段。
+
+防止闲置睡眠使用 macOS IOKit 的 `PreventUserIdleSystemSleep` assertion。它只阻止因无人操作导致的系统睡眠；合盖、Apple 菜单睡眠、低电量、过热等强制睡眠仍由 macOS 控制。鼠标唤醒外接显示器使用 `IOPMAssertionDeclareUserActivity` 报告本地用户活跃；如果 Mac 已经真正进入系统睡眠，应用本身无法运行，因此无法替代硬件/系统级唤醒。
 
 ## 许可证
 

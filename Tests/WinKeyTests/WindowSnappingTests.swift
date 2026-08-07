@@ -69,11 +69,130 @@ final class WindowSnappingTests: XCTestCase {
         )
     }
 
+    func testLayoutProducesThirds() {
+        let visible = CGRect(x: 0, y: 25, width: 1440, height: 900)
+        let current = CGRect(x: 100, y: 100, width: 800, height: 600)
+
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .firstThird, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 0, y: 25, width: 480, height: 900)
+        )
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .centerThird, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 480, y: 25, width: 480, height: 900)
+        )
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .lastThird, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 960, y: 25, width: 480, height: 900)
+        )
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .firstTwoThirds, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 0, y: 25, width: 960, height: 900)
+        )
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .lastTwoThirds, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 480, y: 25, width: 960, height: 900)
+        )
+    }
+
+    func testLayoutAlmostMaximizeAndMaximizeHeight() {
+        let visible = CGRect(x: 0, y: 25, width: 1440, height: 900)
+        let current = CGRect(x: 100, y: 100, width: 800, height: 600)
+
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .almostMaximize, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 10, y: 35, width: 1420, height: 880)
+        )
+        XCTAssertEqual(
+            WindowSnapLayout.targetFrame(for: .maximizeHeight, currentFrame: current, visibleFrame: visible),
+            CGRect(x: 100, y: 25, width: 800, height: 900)
+        )
+    }
+
     func testLayoutRestoreHasNoGeometry() {
         let visible = CGRect(x: 0, y: 25, width: 1440, height: 900)
         let current = CGRect(x: 100, y: 100, width: 800, height: 600)
 
         XCTAssertNil(WindowSnapLayout.targetFrame(for: .restore, currentFrame: current, visibleFrame: visible))
+    }
+
+    // MARK: - SnapAreaDetector
+
+    func testSnapAreaDetectorFindsEdgesAndCorners() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1, y: 450), screenFrame: screen, priorAction: nil),
+            .leftHalf
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1439, y: 450), screenFrame: screen, priorAction: nil),
+            .rightHalf
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 720, y: 899), screenFrame: screen, priorAction: nil),
+            .maximize
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 2, y: 897), screenFrame: screen, priorAction: nil),
+            .topLeft
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1437, y: 897), screenFrame: screen, priorAction: nil),
+            .topRight
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 2, y: 2), screenFrame: screen, priorAction: nil),
+            .bottomLeft
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1437, y: 2), screenFrame: screen, priorAction: nil),
+            .bottomRight
+        )
+    }
+
+    func testSnapAreaDetectorBottomThird() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 200, y: 1), screenFrame: screen, priorAction: nil),
+            .firstThird
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 720, y: 1), screenFrame: screen, priorAction: nil),
+            .centerThird
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1300, y: 1), screenFrame: screen, priorAction: nil),
+            .lastThird
+        )
+    }
+
+    func testSnapAreaDetectorCompoundThirds() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 720, y: 1), screenFrame: screen, priorAction: .firstThird),
+            .firstTwoThirds
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 720, y: 1), screenFrame: screen, priorAction: .firstTwoThirds),
+            .firstTwoThirds
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 720, y: 1), screenFrame: screen, priorAction: .lastThird),
+            .lastTwoThirds
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 720, y: 1), screenFrame: screen, priorAction: .lastTwoThirds),
+            .lastTwoThirds
+        )
+    }
+
+    func testSnapAreaDetectorCenterIsNotASnapArea() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+
+        XCTAssertNil(SnapAreaDetector.directional(cursor: CGPoint(x: 720, y: 450), screenFrame: screen))
     }
 
     // MARK: - WindowSnapStateMachine
@@ -142,10 +261,25 @@ final class WindowSnappingTests: XCTestCase {
         XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.deleteForward, flags: ctrlOption), .restore)
     }
 
+    func testShortcutChordsForExtendedActions() {
+        let ctrlOption: CGEventFlags = [.maskControl, .maskAlternate]
+        let ctrlOptionCommand = ctrlOption.union(.maskCommand)
+        let ctrlOptionShift = ctrlOption.union(.maskShift)
+
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.left, flags: ctrlOptionCommand), .previousDisplay)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.right, flags: ctrlOptionCommand), .nextDisplay)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.d, flags: ctrlOption), .firstThird)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.e, flags: ctrlOption), .firstTwoThirds)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.f, flags: ctrlOption), .centerThird)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.t, flags: ctrlOption), .lastTwoThirds)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.g, flags: ctrlOption), .lastThird)
+        XCTAssertEqual(WindowSnapShortcuts.action(keyCode: KeyCode.up, flags: ctrlOptionShift), .maximizeHeight)
+    }
+
     func testShortcutChordsRejectExtraOrMissingModifiers() {
         let ctrlOption: CGEventFlags = [.maskControl, .maskAlternate]
 
-        XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.left, flags: ctrlOption.union(.maskCommand)))
+        XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.c, flags: ctrlOption.union(.maskCommand)))
         XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.left, flags: ctrlOption.union(.maskShift)))
         XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.left, flags: [.maskCommand]))
         XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.left, flags: [.maskControl]))
@@ -153,6 +287,16 @@ final class WindowSnappingTests: XCTestCase {
         XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.c, flags: [.maskControl]))
         XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.up, flags: []))
         XCTAssertNil(WindowSnapShortcuts.action(keyCode: KeyCode.left, flags: []))
+    }
+
+    func testDragSnappingDefaultOnAndPersists() {
+        let defaults = UserDefaults(suiteName: "DragSnappingTests-\(UUID().uuidString)")!
+        let settings = SettingsStore(defaults: defaults)
+
+        XCTAssertTrue(settings.dragSnapping)
+
+        settings.dragSnapping = false
+        XCTAssertFalse(settings.dragSnapping)
     }
 
     // MARK: - Settings and localization

@@ -3,7 +3,10 @@ import Foundation
 enum KeyCode {
     static let a: Int64 = 0
     static let c: Int64 = 8
+    static let d: Int64 = 2
+    static let e: Int64 = 14
     static let f: Int64 = 3
+    static let g: Int64 = 5
     static let n: Int64 = 45
     static let o: Int64 = 31
     static let p: Int64 = 35

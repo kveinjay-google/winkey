@@ -118,6 +118,65 @@ enum LocalizedText {
         }
     }
 
+    static func dragSnapping(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Snap windows by dragging to screen edges"
+        case .chinese: return "拖动窗口到屏幕边缘自动分屏"
+        }
+    }
+
+    static func windowSnapActionsMenu(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Window snap actions"
+        case .chinese: return "窗口分屏操作"
+        }
+    }
+
+    static func windowSnapActionName(_ action: WindowSnapAction, _ language: AppLanguage) -> String {
+        switch action {
+        case .leftHalf:
+            return language == .english ? "Left half" : "左半屏"
+        case .rightHalf:
+            return language == .english ? "Right half" : "右半屏"
+        case .topHalf:
+            return language == .english ? "Top half" : "上半屏"
+        case .bottomHalf:
+            return language == .english ? "Bottom half" : "下半屏"
+        case .topLeft:
+            return language == .english ? "Top-left quarter" : "左上四分之一"
+        case .topRight:
+            return language == .english ? "Top-right quarter" : "右上四分之一"
+        case .bottomLeft:
+            return language == .english ? "Bottom-left quarter" : "左下四分之一"
+        case .bottomRight:
+            return language == .english ? "Bottom-right quarter" : "右下四分之一"
+        case .maximize:
+            return language == .english ? "Maximize" : "最大化"
+        case .almostMaximize:
+            return language == .english ? "Almost maximize" : "接近最大化"
+        case .maximizeHeight:
+            return language == .english ? "Maximize height" : "最大化高度"
+        case .firstThird:
+            return language == .english ? "First third" : "左三分之一"
+        case .centerThird:
+            return language == .english ? "Center third" : "中间三分之一"
+        case .lastThird:
+            return language == .english ? "Last third" : "右三分之一"
+        case .firstTwoThirds:
+            return language == .english ? "First two thirds" : "左三分之二"
+        case .lastTwoThirds:
+            return language == .english ? "Last two thirds" : "右三分之二"
+        case .previousDisplay:
+            return language == .english ? "Previous display" : "上一显示器"
+        case .nextDisplay:
+            return language == .english ? "Next display" : "下一显示器"
+        case .center:
+            return language == .english ? "Center" : "居中"
+        case .restore:
+            return language == .english ? "Restore" : "还原"
+        }
+    }
+
     static func preventIdleSleep(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Prevent idle system sleep"

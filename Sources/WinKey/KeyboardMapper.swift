@@ -3,13 +3,14 @@ import ApplicationServices
 
 final class KeyboardMapper {
     private let settings: SettingsStore
+    private let windowSnapper: WindowSnapper
     private var keyboardEventTap: CFMachPort?
     private var keyboardRunLoopSource: CFRunLoopSource?
     private let syntheticEventMarker: Int64 = 0x57494E4B4559
-    private lazy var windowSnapper = WindowSnapper()
 
-    init(settings: SettingsStore) {
+    init(settings: SettingsStore, windowSnapper: WindowSnapper) {
         self.settings = settings
+        self.windowSnapper = windowSnapper
     }
 
     func startIfPossible() {

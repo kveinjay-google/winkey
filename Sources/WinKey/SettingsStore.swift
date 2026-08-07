@@ -33,6 +33,9 @@ final class SettingsStore {
         static let altAClipboardScreenshot = "altAClipboardScreenshot"
         static let screenshotShortcutModifier = "screenshotShortcutModifier"
         static let reverseScrollWheel = "reverseScrollWheel"
+        static let windowSnapping = "windowSnapping"
+        static let dragSnapping = "dragSnapping"
+        static let customSnapShortcuts = "customSnapShortcuts"
         static let preventIdleSleep = "preventIdleSleep"
         static let externalDisplayMouseWake = "externalDisplayMouseWake"
         static let launchAtLogin = "launchAtLogin"
@@ -55,6 +58,8 @@ final class SettingsStore {
             Key.altAClipboardScreenshot: true,
             Key.screenshotShortcutModifier: ScreenshotShortcutModifier.option.rawValue,
             Key.reverseScrollWheel: false,
+            Key.windowSnapping: true,
+            Key.dragSnapping: true,
             Key.preventIdleSleep: false,
             Key.externalDisplayMouseWake: false,
             Key.launchAtLogin: false
@@ -129,6 +134,21 @@ final class SettingsStore {
     var reverseScrollWheel: Bool {
         get { defaults.bool(forKey: Key.reverseScrollWheel) }
         set { defaults.set(newValue, forKey: Key.reverseScrollWheel) }
+    }
+
+    var windowSnapping: Bool {
+        get { defaults.bool(forKey: Key.windowSnapping) }
+        set { defaults.set(newValue, forKey: Key.windowSnapping) }
+    }
+
+    var dragSnapping: Bool {
+        get { defaults.bool(forKey: Key.dragSnapping) }
+        set { defaults.set(newValue, forKey: Key.dragSnapping) }
+    }
+
+    var customSnapShortcuts: [String: String] {
+        get { defaults.dictionary(forKey: Key.customSnapShortcuts) as? [String: String] ?? [:] }
+        set { defaults.set(newValue, forKey: Key.customSnapShortcuts) }
     }
 
     var preventIdleSleep: Bool {

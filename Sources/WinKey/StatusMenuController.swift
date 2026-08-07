@@ -5,9 +5,12 @@ import WinKeyScrollReverser
 final class StatusMenuController: NSObject {
     private let settings: SettingsStore
     private let keyboardMapper: KeyboardMapper
+    private let windowSnapper: WindowSnapper
+    private let dragSnapManager: WindowSnapDragManager
     private let scrollReverser: WinKeyScrollReverser
     private let powerManager: PowerManager
     private let permissionWindow: PermissionWindowController
+    private lazy var shortcutRecorder = WindowSnapShortcutRecorder(settings: settings)
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     private let statusMenuItem = NSMenuItem()
@@ -21,6 +24,10 @@ final class StatusMenuController: NSObject {
     private let altAScreenshotItem = NSMenuItem()
     private let screenshotShortcutItem = NSMenuItem()
     private let altTabItem = NSMenuItem()
+    private let windowSnapItem = NSMenuItem()
+    private let dragSnapItem = NSMenuItem()
+    private let windowSnapActionsItem = NSMenuItem()
+    private let customShortcutsItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
     private let preventIdleSleepItem = NSMenuItem()
     private let externalDisplayMouseWakeItem = NSMenuItem()
@@ -32,12 +39,16 @@ final class StatusMenuController: NSObject {
     init(
         settings: SettingsStore,
         keyboardMapper: KeyboardMapper,
+        windowSnapper: WindowSnapper,
+        dragSnapManager: WindowSnapDragManager,
         scrollReverser: WinKeyScrollReverser,
         powerManager: PowerManager,
         permissionWindow: PermissionWindowController
     ) {
         self.settings = settings
         self.keyboardMapper = keyboardMapper
+        self.windowSnapper = windowSnapper
+        self.dragSnapManager = dragSnapManager
         self.scrollReverser = scrollReverser
         self.powerManager = powerManager
         self.permissionWindow = permissionWindow
@@ -61,6 +72,10 @@ final class StatusMenuController: NSObject {
         configure(item: altAScreenshotItem, action: #selector(toggleAltAScreenshot))
         configure(item: screenshotShortcutItem, action: #selector(toggleScreenshotShortcut))
         configure(item: altTabItem, action: #selector(toggleAltTab))
+        configure(item: windowSnapItem, action: #selector(toggleWindowSnapping))
+        configure(item: dragSnapItem, action: #selector(toggleDragSnapping))
+        configure(item: windowSnapActionsItem, action: nil)
+        configure(item: customShortcutsItem, action: #selector(openCustomShortcuts))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: preventIdleSleepItem, action: #selector(togglePreventIdleSleep))
         configure(item: externalDisplayMouseWakeItem, action: #selector(toggleExternalDisplayMouseWake))
@@ -95,6 +110,10 @@ final class StatusMenuController: NSObject {
         menu.addItem(ctrlASelectAllItem)
         menu.addItem(ctrlCommonShortcutsItem)
         menu.addItem(altTabItem)
+        menu.addItem(windowSnapItem)
+        menu.addItem(dragSnapItem)
+        menu.addItem(windowSnapActionsItem)
+        menu.addItem(customShortcutsItem)
         menu.addItem(reverseScrollItem)
         menu.addItem(preventIdleSleepItem)
         menu.addItem(externalDisplayMouseWakeItem)
@@ -109,6 +128,7 @@ final class StatusMenuController: NSObject {
 
         statusItem.menu = menu
         installCtrlCommonSubmenu()
+        installWindowSnapActionsSubmenu()
         refresh()
     }
 
@@ -160,6 +180,22 @@ final class StatusMenuController: NSObject {
 
         altTabItem.title = LocalizedText.altTab(language)
         altTabItem.state = settings.altTab ? .on : .off
+
+        windowSnapItem.title = LocalizedText.windowSnapping(language)
+        windowSnapItem.state = settings.windowSnapping ? .on : .off
+
+        dragSnapItem.title = LocalizedText.dragSnapping(language)
+        dragSnapItem.state = settings.dragSnapping ? .on : .off
+
+        windowSnapActionsItem.title = LocalizedText.windowSnapActionsMenu(language)
+        if let submenu = windowSnapActionsItem.submenu {
+            for item in submenu.items {
+                if let action = item.representedObject as? WindowSnapAction {
+                    item.title = LocalizedText.windowSnapActionName(action, language)
+                }
+            }
+        }
+        customShortcutsItem.title = LocalizedText.customShortcutSettings(language)
 
         reverseScrollItem.title = LocalizedText.reverseScroll(language)
         reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
@@ -219,6 +255,24 @@ final class StatusMenuController: NSObject {
         ctrlCommonShortcutsItem.submenu = submenu
     }
 
+    private func installWindowSnapActionsSubmenu() {
+        let submenu = NSMenu()
+        let actions: [WindowSnapAction] = [
+            .leftHalf, .rightHalf, .topHalf, .bottomHalf,
+            .topLeft, .topRight, .bottomLeft, .bottomRight,
+            .firstThird, .centerThird, .lastThird, .firstTwoThirds, .lastTwoThirds,
+            .maximize, .almostMaximize, .maximizeHeight, .center, .restore,
+            .previousDisplay, .nextDisplay
+        ]
+        actions.forEach { action in
+            let item = NSMenuItem(title: "", action: #selector(performWindowSnapAction(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = action
+            submenu.addItem(item)
+        }
+        windowSnapActionsItem.submenu = submenu
+    }
+
     @objc private func toggleEnabled() {
         settings.enabled.toggle()
         keyboardMapper.restart()
@@ -269,6 +323,28 @@ final class StatusMenuController: NSObject {
     @objc private func toggleAltTab() {
         settings.altTab.toggle()
         refresh()
+    }
+
+    @objc private func toggleWindowSnapping() {
+        settings.windowSnapping.toggle()
+        refresh()
+    }
+
+    @objc private func toggleDragSnapping() {
+        settings.dragSnapping.toggle()
+        dragSnapManager.update(enabled: settings.dragSnapping && AccessibilityPermission.isTrusted)
+        refresh()
+    }
+
+    @objc private func performWindowSnapAction(_ sender: NSMenuItem) {
+        guard let action = sender.representedObject as? WindowSnapAction else {
+            return
+        }
+        windowSnapper.perform(action, useStateMachine: false)
+    }
+
+    @objc private func openCustomShortcuts() {
+        shortcutRecorder.show()
     }
 
     @objc private func toggleReverseScroll() {

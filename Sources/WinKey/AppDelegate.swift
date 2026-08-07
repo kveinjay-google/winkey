@@ -5,13 +5,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = SettingsStore()
     private var permissionTimer: Timer?
     private var lastTrustedState = AccessibilityPermission.isTrusted
-    private lazy var keyboardMapper = KeyboardMapper(settings: settings)
+    private lazy var windowSnapper = WindowSnapper()
+    private lazy var keyboardMapper = KeyboardMapper(settings: settings, windowSnapper: windowSnapper)
+    private lazy var dragSnapManager = WindowSnapDragManager(snapper: windowSnapper)
     private lazy var scrollReverser = WinKeyScrollReverser()
     private lazy var powerManager = PowerManager()
     private lazy var permissionWindow = PermissionWindowController(settings: settings)
     private lazy var statusMenu = StatusMenuController(
         settings: settings,
         keyboardMapper: keyboardMapper,
+        windowSnapper: windowSnapper,
+        dragSnapManager: dragSnapManager,
         scrollReverser: scrollReverser,
         powerManager: powerManager,
         permissionWindow: permissionWindow
@@ -20,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusMenu.install()
         keyboardMapper.startIfPossible()
+        updateDragSnapping()
         updateScrollReverser()
         updatePowerManager()
         startPermissionPolling()
@@ -33,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         permissionTimer?.invalidate()
         keyboardMapper.stop()
+        dragSnapManager.stop()
         scrollReverser.stop()
         powerManager.stop()
     }
@@ -55,10 +61,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if isTrusted {
             permissionWindow.close()
             keyboardMapper.startIfPossible()
+            updateDragSnapping()
             updateScrollReverser()
             updatePowerManager()
         } else {
             keyboardMapper.stop()
+            dragSnapManager.stop()
             scrollReverser.stop()
             updatePowerManager()
         }
@@ -81,5 +89,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preventIdleSleep: settings.preventIdleSleep,
             externalDisplayMouseWake: settings.externalDisplayMouseWake
         )
+    }
+
+    private func updateDragSnapping() {
+        guard AccessibilityPermission.isTrusted else {
+            dragSnapManager.stop()
+            return
+        }
+        dragSnapManager.update(enabled: settings.dragSnapping)
     }
 }

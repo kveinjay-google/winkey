@@ -21,6 +21,7 @@ final class StatusMenuController: NSObject {
     private let altAScreenshotItem = NSMenuItem()
     private let screenshotShortcutItem = NSMenuItem()
     private let altTabItem = NSMenuItem()
+    private let windowSnapItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
     private let preventIdleSleepItem = NSMenuItem()
     private let externalDisplayMouseWakeItem = NSMenuItem()
@@ -61,6 +62,7 @@ final class StatusMenuController: NSObject {
         configure(item: altAScreenshotItem, action: #selector(toggleAltAScreenshot))
         configure(item: screenshotShortcutItem, action: #selector(toggleScreenshotShortcut))
         configure(item: altTabItem, action: #selector(toggleAltTab))
+        configure(item: windowSnapItem, action: #selector(toggleWindowSnapping))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: preventIdleSleepItem, action: #selector(togglePreventIdleSleep))
         configure(item: externalDisplayMouseWakeItem, action: #selector(toggleExternalDisplayMouseWake))
@@ -95,6 +97,7 @@ final class StatusMenuController: NSObject {
         menu.addItem(ctrlASelectAllItem)
         menu.addItem(ctrlCommonShortcutsItem)
         menu.addItem(altTabItem)
+        menu.addItem(windowSnapItem)
         menu.addItem(reverseScrollItem)
         menu.addItem(preventIdleSleepItem)
         menu.addItem(externalDisplayMouseWakeItem)
@@ -160,6 +163,9 @@ final class StatusMenuController: NSObject {
 
         altTabItem.title = LocalizedText.altTab(language)
         altTabItem.state = settings.altTab ? .on : .off
+
+        windowSnapItem.title = LocalizedText.windowSnapping(language)
+        windowSnapItem.state = settings.windowSnapping ? .on : .off
 
         reverseScrollItem.title = LocalizedText.reverseScroll(language)
         reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
@@ -268,6 +274,11 @@ final class StatusMenuController: NSObject {
 
     @objc private func toggleAltTab() {
         settings.altTab.toggle()
+        refresh()
+    }
+
+    @objc private func toggleWindowSnapping() {
+        settings.windowSnapping.toggle()
         refresh()
     }
 

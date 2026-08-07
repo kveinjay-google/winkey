@@ -6,6 +6,7 @@ final class KeyboardMapper {
     private var keyboardEventTap: CFMachPort?
     private var keyboardRunLoopSource: CFRunLoopSource?
     private let syntheticEventMarker: Int64 = 0x57494E4B4559
+    private lazy var windowSnapper = WindowSnapper()
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -94,6 +95,11 @@ final class KeyboardMapper {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
 
+        if settings.windowSnapping, let action = WindowSnapShortcuts.action(keyCode: keyCode, flags: flags) {
+            windowSnapper.perform(action)
+            return nil
+        }
+
         if settings.deleteInFinder, keyCode == KeyCode.deleteForward, isFinderFrontmost() {
             confirmFinderDelete(for: NSWorkspace.shared.frontmostApplication)
             return nil
@@ -109,7 +115,7 @@ final class KeyboardMapper {
             return nil
         }
 
-        if settings.ctrlASelectAll, keyCode == KeyCode.a, flags.contains(.maskControl) {
+        if settings.ctrlASelectAll, keyCode == KeyCode.a, isPlainControl(flags) {
             sendShortcut(keyCode: KeyCode.a, flags: [.maskCommand])
             return nil
         }
@@ -130,7 +136,7 @@ final class KeyboardMapper {
             }
         }
 
-        if settings.ctrlArrow, flags.contains(.maskControl), isTextEditingFocus() {
+        if settings.ctrlArrow, isPlainControl(flags), isTextEditingFocus() {
             if keyCode == KeyCode.left {
                 sendShortcut(keyCode: KeyCode.left, flags: [.maskAlternate])
                 return nil
@@ -193,7 +199,7 @@ final class KeyboardMapper {
     }
 
     private func handleCommonControlShortcut(keyCode: Int64, flags: CGEventFlags) -> Bool {
-        guard flags.contains(.maskControl) else {
+        guard isPlainControl(flags) else {
             return false
         }
 
@@ -233,6 +239,10 @@ final class KeyboardMapper {
         }
 
         return true
+    }
+
+    private func isPlainControl(_ flags: CGEventFlags) -> Bool {
+        flags.contains(.maskControl) && !flags.contains(.maskAlternate) && !flags.contains(.maskCommand)
     }
 
     private func sendShortcut(keyCode: Int64, flags: CGEventFlags, targetPid: pid_t? = nil) {

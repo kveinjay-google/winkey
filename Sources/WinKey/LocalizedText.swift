@@ -111,6 +111,13 @@ enum LocalizedText {
         }
     }
 
+    static func windowSnapping(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Snap windows (Ctrl + Option + arrows)"
+        case .chinese: return "窗口分屏（Ctrl + Option + 方向键）"
+        }
+    }
+
     static func preventIdleSleep(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Prevent idle system sleep"

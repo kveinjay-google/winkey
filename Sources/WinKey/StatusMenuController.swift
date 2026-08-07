@@ -10,6 +10,7 @@ final class StatusMenuController: NSObject {
     private let scrollReverser: WinKeyScrollReverser
     private let powerManager: PowerManager
     private let permissionWindow: PermissionWindowController
+    private lazy var shortcutRecorder = WindowSnapShortcutRecorder(settings: settings)
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     private let statusMenuItem = NSMenuItem()
@@ -26,6 +27,7 @@ final class StatusMenuController: NSObject {
     private let windowSnapItem = NSMenuItem()
     private let dragSnapItem = NSMenuItem()
     private let windowSnapActionsItem = NSMenuItem()
+    private let customShortcutsItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
     private let preventIdleSleepItem = NSMenuItem()
     private let externalDisplayMouseWakeItem = NSMenuItem()
@@ -73,6 +75,7 @@ final class StatusMenuController: NSObject {
         configure(item: windowSnapItem, action: #selector(toggleWindowSnapping))
         configure(item: dragSnapItem, action: #selector(toggleDragSnapping))
         configure(item: windowSnapActionsItem, action: nil)
+        configure(item: customShortcutsItem, action: #selector(openCustomShortcuts))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
         configure(item: preventIdleSleepItem, action: #selector(togglePreventIdleSleep))
         configure(item: externalDisplayMouseWakeItem, action: #selector(toggleExternalDisplayMouseWake))
@@ -110,6 +113,7 @@ final class StatusMenuController: NSObject {
         menu.addItem(windowSnapItem)
         menu.addItem(dragSnapItem)
         menu.addItem(windowSnapActionsItem)
+        menu.addItem(customShortcutsItem)
         menu.addItem(reverseScrollItem)
         menu.addItem(preventIdleSleepItem)
         menu.addItem(externalDisplayMouseWakeItem)
@@ -191,6 +195,7 @@ final class StatusMenuController: NSObject {
                 }
             }
         }
+        customShortcutsItem.title = LocalizedText.customShortcutSettings(language)
 
         reverseScrollItem.title = LocalizedText.reverseScroll(language)
         reverseScrollItem.state = settings.reverseScrollWheel ? .on : .off
@@ -336,6 +341,10 @@ final class StatusMenuController: NSObject {
             return
         }
         windowSnapper.perform(action, useStateMachine: false)
+    }
+
+    @objc private func openCustomShortcuts() {
+        shortcutRecorder.show()
     }
 
     @objc private func toggleReverseScroll() {

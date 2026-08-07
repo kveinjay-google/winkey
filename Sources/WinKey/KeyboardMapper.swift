@@ -96,7 +96,11 @@ final class KeyboardMapper {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
 
-        if settings.windowSnapping, let action = WindowSnapShortcuts.action(keyCode: keyCode, flags: flags) {
+        if settings.windowSnapping, let action = SnapShortcutResolver.action(
+            keyCode: keyCode,
+            flags: flags,
+            customShortcuts: settings.customSnapShortcuts
+        ) {
             windowSnapper.perform(action)
             return nil
         }

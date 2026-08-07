@@ -1,6 +1,6 @@
 import AppKit
 
-enum WindowSnapAction: Equatable {
+enum WindowSnapAction: Equatable, CaseIterable {
     case leftHalf
     case rightHalf
     case topHalf
@@ -29,6 +29,175 @@ enum WindowSnapAction: Equatable {
         default:
             return false
         }
+    }
+
+    var id: String {
+        switch self {
+        case .leftHalf: return "leftHalf"
+        case .rightHalf: return "rightHalf"
+        case .topHalf: return "topHalf"
+        case .bottomHalf: return "bottomHalf"
+        case .topLeft: return "topLeft"
+        case .topRight: return "topRight"
+        case .bottomLeft: return "bottomLeft"
+        case .bottomRight: return "bottomRight"
+        case .maximize: return "maximize"
+        case .almostMaximize: return "almostMaximize"
+        case .maximizeHeight: return "maximizeHeight"
+        case .firstThird: return "firstThird"
+        case .centerThird: return "centerThird"
+        case .lastThird: return "lastThird"
+        case .firstTwoThirds: return "firstTwoThirds"
+        case .lastTwoThirds: return "lastTwoThirds"
+        case .previousDisplay: return "previousDisplay"
+        case .nextDisplay: return "nextDisplay"
+        case .center: return "center"
+        case .restore: return "restore"
+        }
+    }
+
+    static func action(withID id: String) -> WindowSnapAction? {
+        allCases.first { $0.id == id }
+    }
+}
+
+/// A key chord with an explicit modifier set, encodable to and from a stable
+/// string for UserDefaults persistence.
+struct WindowSnapShortcut: Equatable {
+    let keyCode: Int64
+    let flags: CGEventFlags
+
+    var encoded: String {
+        var parts: [String] = []
+        if flags.contains(.maskControl) { parts.append("control") }
+        if flags.contains(.maskAlternate) { parts.append("option") }
+        if flags.contains(.maskCommand) { parts.append("command") }
+        if flags.contains(.maskShift) { parts.append("shift") }
+        parts.append(Self.keyName(for: keyCode))
+        return parts.joined(separator: "+")
+    }
+
+    var displayName: String {
+        var result = ""
+        if flags.contains(.maskControl) { result += "⌃" }
+        if flags.contains(.maskAlternate) { result += "⌥" }
+        if flags.contains(.maskCommand) { result += "⌘" }
+        if flags.contains(.maskShift) { result += "⇧" }
+        result += Self.keyGlyph(for: keyCode)
+        return result
+    }
+
+    static func decode(_ string: String) -> WindowSnapShortcut? {
+        let parts = string.split(separator: "+").map(String.init)
+        guard !parts.isEmpty else {
+            return nil
+        }
+
+        var flags: CGEventFlags = []
+        var seenModifiers = Set<String>()
+        var keyName: String?
+        for part in parts {
+            switch part {
+            case "control", "option", "command", "shift":
+                guard seenModifiers.insert(part).inserted else {
+                    return nil
+                }
+                if part == "control" { flags.insert(.maskControl) }
+                if part == "option" { flags.insert(.maskAlternate) }
+                if part == "command" { flags.insert(.maskCommand) }
+                if part == "shift" { flags.insert(.maskShift) }
+            default:
+                guard keyName == nil else {
+                    return nil
+                }
+                keyName = part
+            }
+        }
+
+        guard let keyName, let keyCode = keyCode(for: keyName) else {
+            return nil
+        }
+        return WindowSnapShortcut(keyCode: keyCode, flags: flags)
+    }
+
+    private static func keyName(for keyCode: Int64) -> String {
+        switch keyCode {
+        case KeyCode.left: return "left"
+        case KeyCode.right: return "right"
+        case KeyCode.up: return "up"
+        case KeyCode.down: return "down"
+        case KeyCode.c: return "c"
+        case KeyCode.d: return "d"
+        case KeyCode.e: return "e"
+        case KeyCode.f: return "f"
+        case KeyCode.g: return "g"
+        case KeyCode.i: return "i"
+        case KeyCode.j: return "j"
+        case KeyCode.k: return "k"
+        case KeyCode.t: return "t"
+        case KeyCode.u: return "u"
+        case KeyCode.deleteForward: return "delete"
+        case KeyCode.returnKey: return "return"
+        default: return "key\(keyCode)"
+        }
+    }
+
+    private static func keyCode(for name: String) -> Int64? {
+        switch name {
+        case "left": return KeyCode.left
+        case "right": return KeyCode.right
+        case "up": return KeyCode.up
+        case "down": return KeyCode.down
+        case "c": return KeyCode.c
+        case "d": return KeyCode.d
+        case "e": return KeyCode.e
+        case "f": return KeyCode.f
+        case "g": return KeyCode.g
+        case "i": return KeyCode.i
+        case "j": return KeyCode.j
+        case "k": return KeyCode.k
+        case "t": return KeyCode.t
+        case "u": return KeyCode.u
+        case "delete": return KeyCode.deleteForward
+        case "return": return KeyCode.returnKey
+        default:
+            guard name.hasPrefix("key") else {
+                return nil
+            }
+            return Int64(name.dropFirst(3))
+        }
+    }
+
+    private static func keyGlyph(for keyCode: Int64) -> String {
+        switch keyCode {
+        case KeyCode.left: return "←"
+        case KeyCode.right: return "→"
+        case KeyCode.up: return "↑"
+        case KeyCode.down: return "↓"
+        case KeyCode.deleteForward: return "⌫"
+        case KeyCode.returnKey: return "↩"
+        default: return keyName(for: keyCode).uppercased()
+        }
+    }
+}
+
+/// Resolves a key press to a snap action, preferring user-recorded custom
+/// chords and falling back to the built-in defaults.
+enum SnapShortcutResolver {
+    static func action(keyCode: Int64, flags: CGEventFlags, customShortcuts: [String: String]) -> WindowSnapAction? {
+        let relevant: CGEventFlags = [.maskControl, .maskAlternate, .maskCommand, .maskShift]
+        let pressed = WindowSnapShortcut(keyCode: keyCode, flags: flags.intersection(relevant))
+
+        for (actionID, encoded) in customShortcuts {
+            guard let shortcut = WindowSnapShortcut.decode(encoded),
+                  shortcut == pressed,
+                  let action = WindowSnapAction.action(withID: actionID) else {
+                continue
+            }
+            return action
+        }
+
+        return WindowSnapShortcuts.action(keyCode: keyCode, flags: flags)
     }
 }
 
@@ -275,7 +444,63 @@ enum WindowSnapShortcuts {
             return hasCommand || hasShift ? nil : .lastTwoThirds
         case KeyCode.g:
             return hasCommand || hasShift ? nil : .lastThird
+        case KeyCode.returnKey:
+            return hasCommand || hasShift ? nil : .maximize
+        case KeyCode.u:
+            return hasCommand || hasShift ? nil : .topLeft
+        case KeyCode.i:
+            return hasCommand || hasShift ? nil : .topRight
+        case KeyCode.j:
+            return hasCommand || hasShift ? nil : .bottomLeft
+        case KeyCode.k:
+            return hasCommand || hasShift ? nil : .bottomRight
         default:
+            return nil
+        }
+    }
+
+    static func defaultChord(for action: WindowSnapAction) -> WindowSnapShortcut? {
+        let ctrlOption: CGEventFlags = [.maskControl, .maskAlternate]
+        switch action {
+        case .leftHalf:
+            return WindowSnapShortcut(keyCode: KeyCode.left, flags: ctrlOption)
+        case .rightHalf:
+            return WindowSnapShortcut(keyCode: KeyCode.right, flags: ctrlOption)
+        case .topHalf:
+            return WindowSnapShortcut(keyCode: KeyCode.up, flags: ctrlOption)
+        case .bottomHalf:
+            return WindowSnapShortcut(keyCode: KeyCode.down, flags: ctrlOption)
+        case .topLeft:
+            return WindowSnapShortcut(keyCode: KeyCode.u, flags: ctrlOption)
+        case .topRight:
+            return WindowSnapShortcut(keyCode: KeyCode.i, flags: ctrlOption)
+        case .bottomLeft:
+            return WindowSnapShortcut(keyCode: KeyCode.j, flags: ctrlOption)
+        case .bottomRight:
+            return WindowSnapShortcut(keyCode: KeyCode.k, flags: ctrlOption)
+        case .maximize:
+            return WindowSnapShortcut(keyCode: KeyCode.returnKey, flags: ctrlOption)
+        case .maximizeHeight:
+            return WindowSnapShortcut(keyCode: KeyCode.up, flags: ctrlOption.union(.maskShift))
+        case .firstThird:
+            return WindowSnapShortcut(keyCode: KeyCode.d, flags: ctrlOption)
+        case .firstTwoThirds:
+            return WindowSnapShortcut(keyCode: KeyCode.e, flags: ctrlOption)
+        case .centerThird:
+            return WindowSnapShortcut(keyCode: KeyCode.f, flags: ctrlOption)
+        case .lastTwoThirds:
+            return WindowSnapShortcut(keyCode: KeyCode.t, flags: ctrlOption)
+        case .lastThird:
+            return WindowSnapShortcut(keyCode: KeyCode.g, flags: ctrlOption)
+        case .previousDisplay:
+            return WindowSnapShortcut(keyCode: KeyCode.left, flags: ctrlOption.union(.maskCommand))
+        case .nextDisplay:
+            return WindowSnapShortcut(keyCode: KeyCode.right, flags: ctrlOption.union(.maskCommand))
+        case .center:
+            return WindowSnapShortcut(keyCode: KeyCode.c, flags: ctrlOption)
+        case .restore:
+            return WindowSnapShortcut(keyCode: KeyCode.deleteForward, flags: ctrlOption)
+        case .almostMaximize:
             return nil
         }
     }

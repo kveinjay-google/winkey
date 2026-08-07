@@ -132,6 +132,34 @@ enum LocalizedText {
         }
     }
 
+    static func customShortcutSettings(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Custom snap shortcuts…"
+        case .chinese: return "自定义分屏快捷键…"
+        }
+    }
+
+    static func recordShortcut(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Record"
+        case .chinese: return "记录"
+        }
+    }
+
+    static func recordingPrompt(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Press new shortcut… (Esc to cancel)"
+        case .chinese: return "按下新快捷键…（Esc 取消）"
+        }
+    }
+
+    static func clearShortcut(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Clear"
+        case .chinese: return "清除"
+        }
+    }
+
     static func windowSnapActionName(_ action: WindowSnapAction, _ language: AppLanguage) -> String {
         switch action {
         case .leftHalf:

@@ -2,7 +2,12 @@ import AppKit
 import WinKeyScrollReverser
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Set when the user chooses Quit from the menu, so applicationWillTerminate
+    /// can distinguish intentional quits from external terminations in logs.
+    static var userRequestedQuit = false
+
     private let settings = SettingsStore()
+    private let launchAgentManager = LaunchAgentManager()
     private var permissionTimer: Timer?
     private var lastTrustedState = AccessibilityPermission.isTrusted
     private lazy var windowSnapper = WindowSnapper()
@@ -27,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateDragSnapping()
         updateScrollReverser()
         updatePowerManager()
+        launchAgentManager.sync(withEnabled: settings.launchAtLogin)
         startPermissionPolling()
 
         if !AccessibilityPermission.isTrusted {
@@ -36,6 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        NSLog(
+            "WinKey terminating (userRequestedQuit=%@, agentInstalled=%@)",
+            String(Self.userRequestedQuit),
+            String(launchAgentManager.isInstalled)
+        )
         permissionTimer?.invalidate()
         keyboardMapper.stop()
         dragSnapManager.stop()

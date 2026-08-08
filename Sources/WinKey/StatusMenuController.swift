@@ -11,6 +11,7 @@ final class StatusMenuController: NSObject {
     private let powerManager: PowerManager
     private let permissionWindow: PermissionWindowController
     private lazy var shortcutRecorder = WindowSnapShortcutRecorder(settings: settings)
+    private lazy var launchAgentManager = LaunchAgentManager()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     private let statusMenuItem = NSMenuItem()
@@ -372,19 +373,8 @@ final class StatusMenuController: NSObject {
 
     @objc private func toggleLaunchAtLogin() {
         let shouldEnable = !settings.launchAtLogin
-
-        do {
-            if shouldEnable {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-
-            settings.launchAtLogin = shouldEnable
-        } catch {
-            showError(title: LocalizedText.launchAtLoginErrorTitle(settings.language), message: error.localizedDescription)
-        }
-
+        settings.launchAtLogin = shouldEnable
+        launchAgentManager.sync(withEnabled: shouldEnable)
         refresh()
     }
 
@@ -404,6 +394,7 @@ final class StatusMenuController: NSObject {
     }
 
     @objc private func quit() {
+        AppDelegate.userRequestedQuit = true
         NSApp.terminate(nil)
     }
 

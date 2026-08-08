@@ -17,6 +17,7 @@ WinKey 是一个 macOS 菜单栏小工具，用来让外接 Windows/PC 键盘保
 - 可选在连接外接显示器时，通过鼠标移动、点击或滚轮主动报告用户活跃，帮助唤醒息屏后的显示输出。
 - 菜单默认为英文，可在菜单中切换为中文。
 - 菜单栏常驻，支持单项开关和开机启动开关。
+- 自动恢复：WinKey 由 launchd 代理守护（`dev.codex.winkey.keepalive`）。异常退出（崩溃、被杀）会在数秒内自动重启；通过菜单正常退出则不会复活。开机启动开关同时管理该代理。
 
 ## 系统要求
 
@@ -62,6 +63,16 @@ https://github.com/kveinjay-google/winkey/releases
 WinKey 使用 macOS 辅助功能权限监听全局键盘事件，并把 Windows 风格快捷键转换成 macOS 快捷键。滚动方向反转还需要输入监控权限。首次启动时，如果未授权，会显示中文引导窗口；也可以从菜单栏中打开系统设置。
 
 WinKey 不上传键盘输入，不连接网络，也不保存你的按键内容。配置仅存储在本机 `UserDefaults` 中。
+
+### 开机启动与自愈
+
+开启"开机启动"后，WinKey 会在 `~/Library/LaunchAgents/dev.codex.winkey.keepalive.plist` 安装一个 launchd 代理（替代旧的登录项机制，避免重复启动）。代理配置为 `RunAtLoad` + `KeepAlive SuccessfulExit=false`：
+
+- 登录时自动启动 WinKey；
+- WinKey 因崩溃、被杀或异常退出时，launchd 会在数秒内自动重新拉起；
+- 从菜单正常退出后不会自动重启。
+
+关闭"开机启动"会停用并移除该代理，但不会退出正在运行的 WinKey。应用启动时会做单实例检查，防止代理与手动启动重复运行。
 
 ## 说明
 

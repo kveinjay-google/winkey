@@ -330,6 +330,7 @@ final class KeyboardMapper {
         }
 
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(axApp, 0.5)
         var focusedValue: CFTypeRef?
         let focusedResult = AXUIElementCopyAttributeValue(
             axApp,
@@ -340,6 +341,7 @@ final class KeyboardMapper {
         guard focusedResult == .success, let focusedElement = focusedValue else {
             return false
         }
+        AXUIElementSetMessagingTimeout(focusedElement as! AXUIElement, 0.5)
 
         var roleValue: CFTypeRef?
         let roleResult = AXUIElementCopyAttributeValue(
@@ -363,6 +365,7 @@ final class KeyboardMapper {
     }
 
     private func copyAttribute(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
+        AXUIElementSetMessagingTimeout(element, 0.5)
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
         guard result == .success else {

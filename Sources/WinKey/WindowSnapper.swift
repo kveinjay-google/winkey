@@ -43,6 +43,10 @@ enum ScreenGeometry {
 /// and key-chord logic live in WindowSnapping.swift and are unit tested; this
 /// class is the thin AX wrapper and keeps per-window snap/restore state.
 final class WindowSnapper {
+    /// Bounds every Accessibility API call so an unresponsive app can never
+    /// freeze WinKey's main thread (Rectangle uses the same mitigation).
+    private let axMessagingTimeout: Float = 0.5
+
     private struct WindowState {
         var restoreFrame: CGRect
         var lastAction: WindowSnapAction?
@@ -177,28 +181,36 @@ final class WindowSnapper {
         guard let info = windowInfo(at: axPoint) else {
             return nil
         }
-        let appElement = AXUIElementCreateApplication(info.pid)
+        let appElement = timed(AXUIElementCreateApplication(info.pid))
         var windowsValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsValue) == .success,
               let windows = windowsValue as? [AXUIElement] else {
             return nil
         }
-        return windows.first { windowFrame($0)?.contains(axPoint) == true }
+        for window in windows {
+            let timedWindow = timed(window)
+            if windowFrame(timedWindow)?.contains(axPoint) == true {
+                return timedWindow
+            }
+        }
+        return nil
     }
 
     private func elementAtPosition(_ axPoint: CGPoint) -> AXUIElement? {
-        let systemWide = AXUIElementCreateSystemWide()
+        let systemWide = timed(AXUIElementCreateSystemWide())
         var element: AXUIElement?
         let result = AXUIElementCopyElementAtPosition(systemWide, Float(axPoint.x), Float(axPoint.y), &element)
         guard result == .success, let element else {
             return nil
         }
-        return element
+        return timed(element)
     }
 
     private func windowAncestor(of element: AXUIElement) -> AXUIElement? {
         var current = element
-        while true {
+        var depth = 0
+        while depth < 32 {
+            depth += 1
             if isWindow(current) {
                 return current
             }
@@ -207,8 +219,9 @@ final class WindowSnapper {
                   let parent, CFGetTypeID(parent) == AXUIElementGetTypeID() else {
                 return nil
             }
-            current = parent as! AXUIElement
+            current = timed(parent as! AXUIElement)
         }
+        return nil
     }
 
     private struct WindowInfo {
@@ -284,7 +297,7 @@ final class WindowSnapper {
             return nil
         }
 
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        let axApp = timed(AXUIElementCreateApplication(app.processIdentifier))
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &value)
         guard result == .success, let value else {
@@ -395,6 +408,11 @@ final class WindowSnapper {
         let result = pointer.pointee
         pointer.deallocate()
         return success ? result : nil
+    }
+
+    private func timed(_ element: AXUIElement) -> AXUIElement {
+        AXUIElementSetMessagingTimeout(element, axMessagingTimeout)
+        return element
     }
 }
 

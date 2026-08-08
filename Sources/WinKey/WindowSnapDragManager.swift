@@ -27,6 +27,9 @@ final class FootprintWindow: NSWindow {
 /// Watches mouse drags and snaps windows to screen edges with a live preview,
 /// mirroring Rectangle's drag-to-snap behavior.
 final class WindowSnapDragManager {
+    /// All AX work runs here so a slow/unresponsive app can never block the
+    /// main thread; NSWindow (footprint) updates hop back to the main thread.
+    private let dragQueue = DispatchQueue(label: "dev.codex.winkey.window-snap-drag", qos: .userInteractive)
     private let snapper: WindowSnapper
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -88,9 +91,13 @@ final class WindowSnapDragManager {
         }
         runLoopSource = nil
         tap = nil
-        resetDragState()
-        footprint?.orderOut(nil)
-        footprint = nil
+        dragQueue.async { [weak self] in
+            self?.resetDragState()
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.footprint?.orderOut(nil)
+            self?.footprint = nil
+        }
     }
 
     private static let eventTapCallback: CGEventTapCallBack = { _, type, event, userInfo in
@@ -109,7 +116,7 @@ final class WindowSnapDragManager {
         guard let nsEvent = NSEvent(cgEvent: event) else {
             return Unmanaged.passUnretained(event)
         }
-        DispatchQueue.main.async {
+        manager.dragQueue.async {
             manager.handle(nsEvent)
         }
         return Unmanaged.passUnretained(event)
@@ -129,7 +136,7 @@ final class WindowSnapDragManager {
     }
 
     private func handleMouseDown(_ event: NSEvent) {
-        let cursorAX = event.cgEvent?.location ?? ScreenGeometry.axPoint(from: NSEvent.mouseLocation)
+        let cursorAX = Self.cursorAX(for: event)
         windowElement = snapper.windowElement(at: cursorAX)
         initialRect = windowElement.flatMap { snapper.frame(of: $0) }
         windowId = nil
@@ -139,12 +146,12 @@ final class WindowSnapDragManager {
         windowMoving = false
         currentSnapArea = nil
         dragAttempts = 0
-        footprint?.orderOut(nil)
+        hideFootprint()
     }
 
     private func handleMouseDragged(_ event: NSEvent) {
         if windowElement == nil, dragAttempts < 10 {
-            let cursorAX = event.cgEvent?.location ?? ScreenGeometry.axPoint(from: NSEvent.mouseLocation)
+            let cursorAX = Self.cursorAX(for: event)
             windowElement = snapper.windowElement(at: cursorAX)
             initialRect = windowElement.flatMap { snapper.frame(of: $0) }
             dragAttempts += 1
@@ -154,7 +161,7 @@ final class WindowSnapDragManager {
             return
         }
 
-        let cursorAppKit = NSEvent.mouseLocation
+        let cursorAppKit = Self.cursorAppKit(for: event)
 
         if !windowMoving {
             guard let initialRect,
@@ -191,22 +198,18 @@ final class WindowSnapDragManager {
                     currentFrame: ScreenGeometry.appKitRect(from: currentRect),
                     visibleFrame: snap.screen.visibleFrame
                 ) {
-                    if footprint == nil {
-                        footprint = FootprintWindow()
-                    }
-                    footprint?.setFrame(target, display: true)
-                    footprint?.orderFront(nil)
+                    showFootprint(frame: target)
                 }
             }
         } else if currentSnapArea != nil {
-            footprint?.orderOut(nil)
+            hideFootprint()
             currentSnapArea = nil
         }
     }
 
     private func handleMouseUp(_ event: NSEvent) {
         if let snap = currentSnapArea, let element = windowElement {
-            footprint?.orderOut(nil)
+            hideFootprint()
             let action = snap.action
             let screen = snap.screen
             snapper.perform(action, element: element, screen: screen, useStateMachine: false)
@@ -217,7 +220,7 @@ final class WindowSnapDragManager {
             }
         }
         resetDragState()
-        footprint?.orderOut(nil)
+        hideFootprint()
     }
 
     private func resetDragState() {
@@ -227,5 +230,35 @@ final class WindowSnapDragManager {
         windowMoving = false
         currentSnapArea = nil
         dragAttempts = 0
+    }
+
+    private func showFootprint(frame: CGRect) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if self.footprint == nil {
+                self.footprint = FootprintWindow()
+            }
+            self.footprint?.setFrame(frame, display: true)
+            self.footprint?.orderFront(nil)
+        }
+    }
+
+    private func hideFootprint() {
+        DispatchQueue.main.async { [weak self] in
+            self?.footprint?.orderOut(nil)
+        }
+    }
+
+    /// Quartz (top-left origin) coordinates, the space AX expects.
+    private static func cursorAX(for event: NSEvent) -> CGPoint {
+        event.cgEvent?.location ?? ScreenGeometry.axPoint(from: NSEvent.mouseLocation)
+    }
+
+    /// AppKit (bottom-left origin) coordinates for NSScreen frames.
+    private static func cursorAppKit(for event: NSEvent) -> CGPoint {
+        if let location = event.cgEvent?.location {
+            return CGPoint(x: location.x, y: ScreenGeometry.mainHeight - location.y)
+        }
+        return NSEvent.mouseLocation
     }
 }

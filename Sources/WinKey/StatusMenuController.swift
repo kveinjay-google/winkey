@@ -269,6 +269,7 @@ final class StatusMenuController: NSObject {
             let item = NSMenuItem(title: "", action: #selector(performWindowSnapAction(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = action
+            item.image = WindowSnapIcon.image(for: action)
             submenu.addItem(item)
         }
         windowSnapActionsItem.submenu = submenu
@@ -344,7 +345,7 @@ final class StatusMenuController: NSObject {
         windowSnapper.perform(action, useStateMachine: false)
     }
 
-    @objc private func openCustomShortcuts() {
+    @objc func openCustomShortcuts() {
         shortcutRecorder.show()
     }
 

@@ -176,4 +176,18 @@ final class WindowSnapShortcutTests: XCTestCase {
         recorder.hide()
         XCTAssertFalse(recorder.isVisible)
     }
+    func testRecorderSectionAndFooterTextIsLocalized() {
+        XCTAssertEqual(LocalizedText.snapSectionHalvesQuarters(.english), "Halves & Quarters")
+        XCTAssertEqual(LocalizedText.snapSectionHalvesQuarters(.chinese), "半屏与四分之一")
+        XCTAssertEqual(LocalizedText.snapSectionSizes(.english), "Sizes")
+        XCTAssertEqual(LocalizedText.snapSectionSizes(.chinese), "尺寸")
+        XCTAssertEqual(LocalizedText.snapSectionDisplayAndRestore(.english), "Displays & Restore")
+        XCTAssertEqual(LocalizedText.snapSectionDisplayAndRestore(.chinese), "显示器与还原")
+        XCTAssertEqual(LocalizedText.resetAllShortcuts(.english), "Reset all")
+        XCTAssertEqual(LocalizedText.resetAllShortcuts(.chinese), "恢复默认")
+        XCTAssertEqual(LocalizedText.cancelRecording(.english), "Cancel")
+        XCTAssertEqual(LocalizedText.cancelRecording(.chinese), "取消")
+        XCTAssertEqual(LocalizedText.defaultShortcut(.english, shortcut: "⌃⌥←"), "Default ⌃⌥←")
+        XCTAssertEqual(LocalizedText.defaultShortcut(.chinese, shortcut: "⌃⌥←"), "默认 ⌃⌥←")
+    }
 }

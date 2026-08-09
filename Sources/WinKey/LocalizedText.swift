@@ -160,6 +160,69 @@ enum LocalizedText {
         }
     }
 
+    static func snapSectionHalvesQuarters(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Halves & Quarters"
+        case .chinese: return "半屏与四分之一"
+        }
+    }
+
+    static func snapSectionSizes(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Sizes"
+        case .chinese: return "尺寸"
+        }
+    }
+
+    static func snapSectionDisplayAndRestore(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Displays & Restore"
+        case .chinese: return "显示器与还原"
+        }
+    }
+
+    static func resetAllShortcuts(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Reset all"
+        case .chinese: return "恢复默认"
+        }
+    }
+
+    static func cancelRecording(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Cancel"
+        case .chinese: return "取消"
+        }
+    }
+
+    static func defaultShortcut(_ language: AppLanguage, shortcut: String) -> String {
+        switch language {
+        case .english: return "Default \(shortcut)"
+        case .chinese: return "默认 \(shortcut)"
+        }
+    }
+
+    static func recordingHint(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Click Record, then press a chord with at least one of ⌃ / ⌥ / ⌘. Esc cancels."
+        case .chinese: return "点击「记录」后按下组合键；至少包含 ⌃ / ⌥ / ⌘ 之一，Esc 取消"
+        }
+    }
+
+    static func recorderSubtitle(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Record custom shortcuts for each window snap action"
+        case .chinese: return "为每个窗口分屏动作录制自定义快捷键"
+        }
+    }
+
+    static func recordingPromptShort(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Press new shortcut…"
+        case .chinese: return "按新组合键…"
+        }
+    }
+
     static func windowSnapActionName(_ action: WindowSnapAction, _ language: AppLanguage) -> String {
         switch action {
         case .leftHalf:

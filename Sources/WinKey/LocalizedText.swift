@@ -125,6 +125,13 @@ enum LocalizedText {
         }
     }
 
+    static func dragSnapEdgeThirds(_ language: AppLanguage) -> String {
+        switch language {
+        case .english: return "Edge snap uses thirds"
+        case .chinese: return "边缘吸附使用三等分"
+        }
+    }
+
     static func windowSnapActionsMenu(_ language: AppLanguage) -> String {
         switch language {
         case .english: return "Window snap actions"

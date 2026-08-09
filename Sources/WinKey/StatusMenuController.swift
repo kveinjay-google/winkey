@@ -27,6 +27,7 @@ final class StatusMenuController: NSObject {
     private let altTabItem = NSMenuItem()
     private let windowSnapItem = NSMenuItem()
     private let dragSnapItem = NSMenuItem()
+    private let dragSnapThirdsItem = NSMenuItem()
     private let windowSnapActionsItem = NSMenuItem()
     private let customShortcutsItem = NSMenuItem()
     private let reverseScrollItem = NSMenuItem()
@@ -75,6 +76,7 @@ final class StatusMenuController: NSObject {
         configure(item: altTabItem, action: #selector(toggleAltTab))
         configure(item: windowSnapItem, action: #selector(toggleWindowSnapping))
         configure(item: dragSnapItem, action: #selector(toggleDragSnapping))
+        configure(item: dragSnapThirdsItem, action: #selector(toggleDragSnapThirds))
         configure(item: windowSnapActionsItem, action: nil)
         configure(item: customShortcutsItem, action: #selector(openCustomShortcuts))
         configure(item: reverseScrollItem, action: #selector(toggleReverseScroll))
@@ -113,6 +115,7 @@ final class StatusMenuController: NSObject {
         menu.addItem(altTabItem)
         menu.addItem(windowSnapItem)
         menu.addItem(dragSnapItem)
+        menu.addItem(dragSnapThirdsItem)
         menu.addItem(windowSnapActionsItem)
         menu.addItem(customShortcutsItem)
         menu.addItem(reverseScrollItem)
@@ -187,6 +190,9 @@ final class StatusMenuController: NSObject {
 
         dragSnapItem.title = LocalizedText.dragSnapping(language)
         dragSnapItem.state = settings.dragSnapping ? .on : .off
+
+        dragSnapThirdsItem.title = LocalizedText.dragSnapEdgeThirds(language)
+        dragSnapThirdsItem.state = settings.dragSnapEdgeThirds ? .on : .off
 
         windowSnapActionsItem.title = LocalizedText.windowSnapActionsMenu(language)
         if let submenu = windowSnapActionsItem.submenu {
@@ -335,6 +341,11 @@ final class StatusMenuController: NSObject {
     @objc private func toggleDragSnapping() {
         settings.dragSnapping.toggle()
         dragSnapManager.update(enabled: settings.dragSnapping && AccessibilityPermission.isTrusted)
+        refresh()
+    }
+
+    @objc private func toggleDragSnapThirds() {
+        settings.dragSnapEdgeThirds.toggle()
         refresh()
     }
 

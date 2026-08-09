@@ -12,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastTrustedState = AccessibilityPermission.isTrusted
     private lazy var windowSnapper = WindowSnapper()
     private lazy var keyboardMapper = KeyboardMapper(settings: settings, windowSnapper: windowSnapper)
-    private lazy var dragSnapManager = WindowSnapDragManager(snapper: windowSnapper)
+    private lazy var dragSnapManager = WindowSnapDragManager(snapper: windowSnapper, settings: settings)
     private lazy var scrollReverser = WinKeyScrollReverser()
     private lazy var powerManager = PowerManager()
     private lazy var permissionWindow = PermissionWindowController(settings: settings)

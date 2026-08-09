@@ -35,6 +35,7 @@ final class SettingsStore {
         static let reverseScrollWheel = "reverseScrollWheel"
         static let windowSnapping = "windowSnapping"
         static let dragSnapping = "dragSnapping"
+        static let dragSnapEdgeThirds = "dragSnapEdgeThirds"
         static let customSnapShortcuts = "customSnapShortcuts"
         static let preventIdleSleep = "preventIdleSleep"
         static let externalDisplayMouseWake = "externalDisplayMouseWake"
@@ -60,6 +61,7 @@ final class SettingsStore {
             Key.reverseScrollWheel: false,
             Key.windowSnapping: true,
             Key.dragSnapping: true,
+            Key.dragSnapEdgeThirds: true,
             Key.preventIdleSleep: false,
             Key.externalDisplayMouseWake: false,
             Key.launchAtLogin: false
@@ -144,6 +146,11 @@ final class SettingsStore {
     var dragSnapping: Bool {
         get { defaults.bool(forKey: Key.dragSnapping) }
         set { defaults.set(newValue, forKey: Key.dragSnapping) }
+    }
+
+    var dragSnapEdgeThirds: Bool {
+        get { defaults.bool(forKey: Key.dragSnapEdgeThirds) }
+        set { defaults.set(newValue, forKey: Key.dragSnapEdgeThirds) }
     }
 
     var customSnapShortcuts: [String: String] {

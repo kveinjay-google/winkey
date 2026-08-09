@@ -224,6 +224,19 @@ final class WindowSnapper {
         return nil
     }
 
+
+    /// Returns false when a click cannot start a drag-snap: either it is not
+    /// over any normal window (menu bar, Dock, desktop) or it is over one of
+    /// our own windows (status item, panels). AX hit-testing our own app from
+    /// the background drag queue crashes AppKit's accessibility code, so this
+    /// must be checked before any AX lookup at that position.
+    func shouldHandleDrag(at axPoint: CGPoint) -> Bool {
+        guard let info = windowInfo(at: axPoint) else {
+            return false
+        }
+        return info.pid != getpid()
+    }
+
     private struct WindowInfo {
         let pid: pid_t
     }

@@ -137,6 +137,10 @@ final class WindowSnapDragManager {
 
     private func handleMouseDown(_ event: NSEvent) {
         let cursorAX = Self.cursorAX(for: event)
+        guard snapper.shouldHandleDrag(at: cursorAX) else {
+            resetDragState()
+            return
+        }
         windowElement = snapper.windowElement(at: cursorAX)
         initialRect = windowElement.flatMap { snapper.frame(of: $0) }
         windowId = nil

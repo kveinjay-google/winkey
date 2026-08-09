@@ -27,6 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Menu-bar utilities must never be auto-terminated by macOS when idle.
+        ProcessInfo.processInfo.disableAutomaticTermination("WinKey background service")
         statusMenu.install()
         keyboardMapper.startIfPossible()
         updateDragSnapping()

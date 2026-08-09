@@ -31,6 +31,7 @@ final class WindowSnapDragManager {
     /// main thread; NSWindow (footprint) updates hop back to the main thread.
     private let dragQueue = DispatchQueue(label: "dev.codex.winkey.window-snap-drag", qos: .userInteractive)
     private let snapper: WindowSnapper
+    private let settings: SettingsStore
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
@@ -42,8 +43,9 @@ final class WindowSnapDragManager {
     private var dragAttempts = 0
     private var footprint: FootprintWindow?
 
-    init(snapper: WindowSnapper) {
+    init(snapper: WindowSnapper, settings: SettingsStore) {
         self.snapper = snapper
+        self.settings = settings
     }
 
     func update(enabled: Bool) {
@@ -187,7 +189,12 @@ final class WindowSnapDragManager {
         let priorAction = windowId.flatMap { snapper.lastAction(for: $0) }
         var foundSnap: SnapArea?
         for screen in NSScreen.screens {
-            if let action = SnapAreaDetector.action(cursor: cursorAppKit, screenFrame: screen.frame, priorAction: priorAction) {
+            if let action = SnapAreaDetector.action(
+                cursor: cursorAppKit,
+                screenFrame: screen.frame,
+                priorAction: priorAction,
+                edgeUsesThirds: settings.dragSnapEdgeThirds
+            ) {
                 foundSnap = SnapArea(action: action, screen: screen)
                 break
             }

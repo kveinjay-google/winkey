@@ -315,4 +315,51 @@ final class WindowSnappingTests: XCTestCase {
         XCTAssertEqual(LocalizedText.windowSnapping(.english), "Snap windows (Ctrl + Option + arrows)")
         XCTAssertEqual(LocalizedText.windowSnapping(.chinese), "窗口分屏（Ctrl + Option + 方向键）")
     }
+    // MARK: - Edge snap mode
+
+    func testSnapAreaDetectorEdgeThirdsMode() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1, y: 450), screenFrame: screen, priorAction: nil, edgeUsesThirds: true),
+            .firstThird
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1439, y: 450), screenFrame: screen, priorAction: nil, edgeUsesThirds: true),
+            .lastThird
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1, y: 450), screenFrame: screen, priorAction: nil, edgeUsesThirds: false),
+            .leftHalf
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 1439, y: 450), screenFrame: screen, priorAction: nil, edgeUsesThirds: false),
+            .rightHalf
+        )
+        // Corners and bottom thirds are unaffected by the edge mode.
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 2, y: 897), screenFrame: screen, priorAction: nil, edgeUsesThirds: true),
+            .topLeft
+        )
+        XCTAssertEqual(
+            SnapAreaDetector.action(cursor: CGPoint(x: 200, y: 1), screenFrame: screen, priorAction: nil, edgeUsesThirds: true),
+            .firstThird
+        )
+    }
+
+    func testDragSnapEdgeThirdsDefaultOnAndPersists() {
+        let defaults = UserDefaults(suiteName: "EdgeThirdsTests-\(UUID().uuidString)")!
+        let settings = SettingsStore(defaults: defaults)
+
+        XCTAssertTrue(settings.dragSnapEdgeThirds)
+
+        settings.dragSnapEdgeThirds = false
+        XCTAssertFalse(settings.dragSnapEdgeThirds)
+    }
+
+    func testDragSnapEdgeThirdsTextIsLocalized() {
+        XCTAssertEqual(LocalizedText.dragSnapEdgeThirds(.english), "Edge snap uses thirds")
+        XCTAssertEqual(LocalizedText.dragSnapEdgeThirds(.chinese), "边缘吸附使用三等分")
+    }
 }
+

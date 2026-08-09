@@ -302,7 +302,12 @@ enum SnapAreaDetector {
         return nil
     }
 
-    static func action(cursor: CGPoint, screenFrame: CGRect, priorAction: WindowSnapAction?) -> WindowSnapAction? {
+    static func action(
+        cursor: CGPoint,
+        screenFrame: CGRect,
+        priorAction: WindowSnapAction?,
+        edgeUsesThirds: Bool = false
+    ) -> WindowSnapAction? {
         guard let directional = directional(cursor: cursor, screenFrame: screenFrame) else {
             return nil
         }
@@ -315,9 +320,9 @@ enum SnapAreaDetector {
         case .tr:
             return .topRight
         case .l:
-            return .leftHalf
+            return edgeUsesThirds ? .firstThird : .leftHalf
         case .r:
-            return .rightHalf
+            return edgeUsesThirds ? .lastThird : .rightHalf
         case .bl:
             return .bottomLeft
         case .br:

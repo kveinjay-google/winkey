@@ -62,9 +62,11 @@ final class LaunchAgentManager {
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: Self.agentFileURL, options: .atomic)
 
-        // Migrate away from the old SMAppService login item so the agent is the
-        // single launch mechanism and the app cannot start twice at login.
-        if #available(macOS 13, *) {
+        // Remove the old SMAppService login item so the agent is the single
+        // launch mechanism. Never do this from an instance that IS that login
+        // item: unregistering would make macOS terminate the running app
+        // (observed as a clean self-exit with no relaunch).
+        if #available(macOS 13, *), !Self.isLegacyServiceInstance() {
             try? SMAppService.mainApp.unregister()
         }
 
@@ -75,6 +77,11 @@ final class LaunchAgentManager {
         _ = launchctl(["enable", "gui/\(getuid())/\(Self.label)"])
         _ = launchctl(["bootstrap", "gui/\(getuid())", Self.agentFileURL.path])
 
+        // If the agent is loaded but not running (e.g. this instance was
+        // launched by the legacy login item), start it so it takes over via
+        // the single-instance guard and becomes the process owner.
+        ensureAgentRunning()
+
         // Make sure the keep-alive agent is the only launcher going forward.
         removeLegacyLoginItemServices()
     }
@@ -84,6 +91,10 @@ final class LaunchAgentManager {
         // any KeepAlive relaunch, without terminating the running app.
         _ = launchctl(["disable", "gui/\(getuid())/\(Self.label)"])
         try? FileManager.default.removeItem(at: Self.agentFileURL)
+        if #available(macOS 13, *), !Self.isLegacyServiceInstance() {
+            try? SMAppService.mainApp.unregister()
+        }
+        removeLegacyLoginItemServices()
     }
 
     @discardableResult
@@ -148,6 +159,39 @@ final class LaunchAgentManager {
     /// PID of the currently-running keep-alive job, if launchd has it running.
     static func agentPID() -> pid_t? {
         jobPID(label: label)
+    }
+
+    /// True when the current process is itself running as a legacy
+    /// SMAppService login item (application.dev.codex.winkey.*).
+    static func isLegacyServiceInstance() -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = ["print", "gui/\(getuid())"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            guard let output = String(data: data, encoding: .utf8) else { return false }
+            let ourPID = getpid()
+            for label in legacyServiceLabels(from: output) {
+                if let pid = jobPID(label: label), pid == ourPID {
+                    return true
+                }
+            }
+        } catch {
+        }
+        return false
+    }
+
+    /// Starts the keep-alive job now (if it is loaded but not running) so the
+    /// agent can take ownership of the process via the single-instance guard.
+    func ensureAgentRunning() {
+        if Self.jobPID(label: Self.label) == nil {
+            _ = launchctl(["kickstart", "gui/\(getuid())/\(Self.label)"])
+        }
     }
 
     /// Removes leftover SMAppService login-item jobs (label prefix

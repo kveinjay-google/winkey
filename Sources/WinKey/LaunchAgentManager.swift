@@ -74,6 +74,9 @@ final class LaunchAgentManager {
         // single-instance guard in main.swift.
         _ = launchctl(["enable", "gui/\(getuid())/\(Self.label)"])
         _ = launchctl(["bootstrap", "gui/\(getuid())", Self.agentFileURL.path])
+
+        // Make sure the keep-alive agent is the only launcher going forward.
+        removeLegacyLoginItemServices()
     }
 
     func uninstall() throws {
@@ -99,7 +102,80 @@ final class LaunchAgentManager {
         }
     }
 
-    enum LaunchAgentError: Error {
-        case missingExecutable
+
+    static func isLegacyServiceLabel(_ label: String) -> Bool {
+        label.hasPrefix("application.dev.codex.winkey")
+    }
+
+    static func legacyServiceLabels(from output: String) -> [String] {
+        output.split(whereSeparator: \.isNewline).compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard let eq = trimmed.firstIndex(of: "=") else { return nil }
+            let label = String(trimmed[..<eq]).trimmingCharacters(in: .whitespaces)
+            return isLegacyServiceLabel(label) ? label : nil
+        }
+    }
+
+    static func parseAgentPID(from output: String) -> pid_t? {
+        for line in output.split(whereSeparator: \.isNewline) {
+            let parts = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
+            if parts.count >= 3, parts[0] == "pid", parts[1] == "=", let pid = pid_t(parts[2]) {
+                return pid
+            }
+        }
+        return nil
+    }
+
+    /// PID of a currently-running launchd job with the given label, if any.
+    static func jobPID(label: String) -> pid_t? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = ["print", "gui/\(getuid())/\(label)"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            guard let output = String(data: data, encoding: .utf8) else { return nil }
+            return parseAgentPID(from: output)
+        } catch {
+            return nil
+        }
+    }
+
+    /// PID of the currently-running keep-alive job, if launchd has it running.
+    static func agentPID() -> pid_t? {
+        jobPID(label: label)
+    }
+
+    /// Removes leftover SMAppService login-item jobs (label prefix
+    /// application.dev.codex.winkey) so the keep-alive agent is the only
+    /// launcher. Never boots out a job whose process is our own.
+    func removeLegacyLoginItemServices() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = ["print", "gui/\(getuid())"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            guard let output = String(data: data, encoding: .utf8) else { return }
+            let ourPID = getpid()
+            for label in Self.legacyServiceLabels(from: output) {
+                if let jobPID = Self.jobPID(label: label), jobPID == ourPID { continue }
+                _ = launchctl(["bootout", "gui/\(getuid())/\(label)"])
+            }
+        } catch {
+        }
     }
 }
+
+enum LaunchAgentError: Error {
+    case missingExecutable
+}
+

@@ -40,4 +40,40 @@ final class LaunchAgentManagerTests: XCTestCase {
         XCTAssertEqual(decoded?["KeepAlive"] as? [String: Bool], ["SuccessfulExit": false])
         XCTAssertEqual(decoded?["RunAtLoad"] as? Bool, true)
     }
+    func testLegacyServiceLabelDetection() {
+        XCTAssertTrue(LaunchAgentManager.isLegacyServiceLabel("application.dev.codex.winkey.26205707.26205737"))
+        XCTAssertFalse(LaunchAgentManager.isLegacyServiceLabel("dev.codex.winkey.keepalive"))
+        XCTAssertFalse(LaunchAgentManager.isLegacyServiceLabel("application.com.example.app"))
+    }
+
+    func testLegacyServiceLabelsParsing() {
+        let output = """
+        gui/501 = {
+            active count = 2
+            application.dev.codex.winkey.26205707.26205737 = {
+                program = /Users/kevin/Documents/winkey/dist/WinKey.app/Contents/MacOS/WinKey
+            }
+            dev.codex.winkey.keepalive = {
+                program = /Users/kevin/Documents/winkey/dist/WinKey.app/Contents/MacOS/WinKey
+            }
+            com.apple.Safari = {
+            }
+        }
+        """
+
+        XCTAssertEqual(
+            LaunchAgentManager.legacyServiceLabels(from: output),
+            ["application.dev.codex.winkey.26205707.26205737"]
+        )
+    }
+
+    func testParseAgentPID() {
+        XCTAssertEqual(
+            LaunchAgentManager.parseAgentPID(from: "\t\tpid = 88865\n\t\tstate = running"),
+            88865
+        )
+        XCTAssertNil(LaunchAgentManager.parseAgentPID(from: "state = not running"))
+        XCTAssertNil(LaunchAgentManager.parseAgentPID(from: ""))
+    }
 }
+
